@@ -12,7 +12,7 @@ spec:
       volumes:
         - name: discord-config-speecher-file
           secret:
-            secretName: key.json
+            secretName: discord-config-speecher-file
       containers:
         - image: asia.gcr.io/flex-k8s/discord-speecher
           imagePullPolicy: Always
@@ -27,7 +27,7 @@ spec:
               value: "key.json"
           volumeMounts:
             - name: discord-config-speecher-file
-              mountPath: "/workspace/key.json"
+              mountPath: "/workspace"
               readOnly: true
           resources:
             requests:
