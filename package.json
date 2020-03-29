@@ -1,10 +1,10 @@
 {
-    "name": "discord-speaker",
+    "name": "discord-speecher",
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "GOOGLE_APPLICATION_CREDENTIALS='key.json' ./node_modules/.bin/ts-node src/index.ts",
+        "start": "./node_modules/.bin/ts-node src/index.ts",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "",
