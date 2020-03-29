@@ -1,0 +1,18 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'asia.gcr.io/flex-k8s/discord-speecher:$REVISION_ID', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['tag', 'asia.gcr.io/flex-k8s/discord-speecher:$REVISION_ID', 'asia.gcr.io/flex-k8s/discord-speecher:latest']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia.gcr.io/flex-k8s/discord-speecher:$REVISION_ID']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia.gcr.io/flex-k8s/discord-speecher:latest']
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - set
+      - image
+      - deployment/discord-speecher-deployment
+      - discord-speecher-container=asia.gcr.io/flex-k8s/discord-speecher:$REVISION_ID
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=asia-northeast1-b'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=flex'
