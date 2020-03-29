@@ -1,0 +1,34 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: discord-speecher-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: discord-speecher
+    spec:
+      volumes:
+        - name: discord-config-speecher-file
+          secret:
+            secretName: key.json
+      containers:
+        - image: asia.gcr.io/flex-k8s/discord-speecher
+          imagePullPolicy: Always
+          name: discord-speecher-container
+          env:
+            - name: DISCORD_TOKEN
+              valueFrom:
+                  secretKeyRef:
+                      name: discord-config-speecher-txt
+                      key: speecher-token
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "key.json"
+          volumeMounts:
+            - name: discord-config-speecher-file
+              mountPath: "/workspace/key.json"
+              readOnly: true
+          resources:
+            requests:
+              cpu: "1m"
