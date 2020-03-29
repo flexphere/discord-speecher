@@ -24,10 +24,10 @@ spec:
                       name: discord-config-speecher-txt
                       key: speecher-token
             - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: "key.json"
+              value: "creds/key.json"
           volumeMounts:
             - name: discord-config-speecher-file
-              mountPath: "/workspace"
+              mountPath: "/workspace/creds"
               readOnly: true
           resources:
             requests:
