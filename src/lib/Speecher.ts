@@ -58,8 +58,9 @@ export class Speecher extends Base {
             return;
         }
 
-        if (this.connection.channel.members.array().length === 0) {
-            this.connection.disconnect();
-        }
+        console.log(this.connection.channel.members);
+        // if (this.connection.channel.members.array().length === 0) {
+        //     this.connection.disconnect();
+        // }
     }
 }
