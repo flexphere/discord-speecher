@@ -47,4 +47,19 @@ export class Speecher extends Base {
             message.channel.send('｡ﾟ(ﾟ´Д｀ﾟ)ﾟ｡ごめん。エラーだわ');
         }
     }
+
+    @Listen('voiceStateUpdate')
+    async stateUpdate(...args: any) {
+        if ( ! this.connection) {
+            return;
+        }
+
+        if ( this.connection.status !== 0 ) {
+            return;
+        }
+
+        if (this.connection.channel.members.length === 0) {
+            this.connection.disconnect();
+        }
+    }
 }
