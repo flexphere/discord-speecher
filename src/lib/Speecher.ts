@@ -59,7 +59,6 @@ export class Speecher extends Base {
         }
 
         const memberCount = this.connection.channel.members.array().length;
-        console.log(memberCount);
         if (memberCount < 2) {
             this.connection.disconnect();
         }
