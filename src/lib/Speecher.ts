@@ -52,7 +52,7 @@ export class Speecher extends Base {
             const client = new textToSpeech.TextToSpeechClient();
             const voice = await this.getOrCreateVoiceConfig(message.member.id);
             const request = {
-                input: { text: content },
+                input: { text: this.filterContent(content) },
                 voice: {
                     languageCode: 'ja-JP',
                     name: voice.type
@@ -129,5 +129,11 @@ export class Speecher extends Base {
         await db.query('insert into voices (user_id, type, rate, pitch) values (?, ?, ?, ?);', [id, voice.type, voice.rate, voice.pitch]);
 
         return voice;
+    }
+
+    filterContent(text) {
+        text = text.replace(/[ｗ|w]+$/, "笑い");
+        text = text.replace(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/, "URL");
+        return text;
     }
 }
