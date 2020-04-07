@@ -97,6 +97,7 @@ export class Speecher extends Base {
     async Speak() {
         if (this.queue.length) {
             const data = this.queue.shift();
+            if ( ! data) return;
             const dispatcher = this.connection.play(data);
             this.playing = true;
             dispatcher.on('finish', () => {
