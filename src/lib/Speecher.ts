@@ -11,6 +11,13 @@ const VoiceTypes = [
     'ja-JP-Standard-D',
 ];
 
+interface VoiceConfig {
+    type: string
+    rate: number
+    pitch: number
+    [key:string]: any
+}
+
 @Bot()
 export class Speecher extends Base {
     connection!: Discord.VoiceConnection;
@@ -43,7 +50,7 @@ export class Speecher extends Base {
 
             const content = message.cleanContent;
             const client = new textToSpeech.TextToSpeechClient();
-            const voice = this.getOrCreateVoiceConfig(message.member.id);
+            const voice = await this.getOrCreateVoiceConfig(message.member.id);
             const request = {
                 input: { text: content },
                 voice: {
@@ -61,7 +68,10 @@ export class Speecher extends Base {
             const buffer = Buffer.from(response.audioContent.buffer);
             const dataurl = `data:‎audio/mpeg;base64,${buffer.toString('base64')}`;
             this.queue.push(dataurl);
-            this.Speak();
+
+            if ( ! this.playing) {
+                this.Speak();
+            }
         } catch (e) {
             console.error(e);
             message.channel.send('｡ﾟ(ﾟ´Д｀ﾟ)ﾟ｡ごめん。エラーだわ');
@@ -86,17 +96,17 @@ export class Speecher extends Base {
 
     async Speak() {
         if (this.queue.length) {
-            const data = queue.shift();
+            const data = this.queue.shift();
             const dispatcher = this.connection.play(data);
             this.playing = true;
             dispatcher.on('finish', () => {
                 this.playing = false;
-                this.play();
+                this.Speak();
             });
         }
     }
 
-    getOrCreateVoiceConfig(id: string) {
+    async getOrCreateVoiceConfig(id: string):Promise<VoiceConfig> {
         const db = await Connection();
         const rows = await db.query('select * from voices where user_id = ?', [id]);
         if ( ! rows.length) {
@@ -105,10 +115,10 @@ export class Speecher extends Base {
         return rows[0];
     }
 
-    createVoiceConfig(id: string) {
+    async createVoiceConfig(id: string):Promise<VoiceConfig> {
         const rand = (min, max) => Math.random() * (max - min) + min;
 
-        const voice =  {
+        const voice = {
             type: VoiceTypes[Math.floor(rand(0, 5))],
             rate: (rand(0.8, 2)).toFixed(2), // 0.25〜4  default 1  want 0.8〜2
             pitch: (rand(-5, 5)).toFixed(1), //-20.0 〜 20.0 default 0 want -5〜5

@@ -24,10 +24,10 @@ spec:
                       name: discord-config-speecher-txt
                       key: speecher-token
             - name: DB_HOST
-            valueFrom:
-                secretKeyRef:
-                    name: database-config
-                    key: hostname
+              valueFrom:
+                  secretKeyRef:
+                      name: database-config
+                      key: hostname
             - name: DB_USER
               valueFrom:
                   secretKeyRef:
