@@ -24,6 +24,21 @@ export class Speecher extends Base {
     playing: boolean = false;
     queue: string[] = [];
 
+
+    @Command('reboot')
+    async Reboot(message: Discord.Message, ...args: string[]) {
+        process.exit();
+    }
+
+    @Command('leave')
+    async Leave(message: Discord.Message, ...args: string[]) {
+        if ( ! this.connection) {
+            return;
+        }
+
+        this.connection.disconnect();
+    }
+
     @Listen('message')
     async Queue(message: Discord.Message, ...args: string[]) {
         try {
