@@ -1,6 +1,6 @@
 import Discord from 'discord.js';
 import { Base } from './discordUtil/Base';
-import { Bot, Listen } from './discordUtil/Decorator';
+import { Bot, Listen, Command } from './discordUtil/Decorator';
 import { Connection } from './DB';
 const textToSpeech = require('@google-cloud/text-to-speech');
 
