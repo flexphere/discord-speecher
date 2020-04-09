@@ -57,6 +57,10 @@ export class Speecher extends Base {
             if ( ! message.member.voice.selfMute) {
                 return;
             }
+
+            if ( message.cleanContent.startsWith("!")) {
+                return;
+            }
     
             this.connection = await message.member.voice.channel.join();
             if ( ! this.connection) {
