@@ -25,12 +25,12 @@ export class Speecher extends Base {
     queue: string[] = [];
 
 
-    @Command('reboot')
+    @Command('!speecher reboot')
     async Reboot(message: Discord.Message, ...args: string[]) {
-        process.exit();
+        process.exit(0);
     }
 
-    @Command('leave')
+    @Command('!speecher leave')
     async Leave(message: Discord.Message, ...args: string[]) {
         if ( ! this.connection) {
             return;
