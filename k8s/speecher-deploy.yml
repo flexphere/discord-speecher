@@ -23,6 +23,23 @@ spec:
                   secretKeyRef:
                       name: discord-config-speecher-txt
                       key: speecher-token
+            - name: DB_HOST
+              valueFrom:
+                  secretKeyRef:
+                      name: database-config
+                      key: hostname
+            - name: DB_USER
+              valueFrom:
+                  secretKeyRef:
+                      name: database-config
+                      key: username
+            - name: DB_PASS
+              valueFrom:
+                  secretKeyRef:
+                      name: database-config
+                      key: password
+            - name: DB_NAME
+              value: "speecher"
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: "creds/key.json"
           volumeMounts:
