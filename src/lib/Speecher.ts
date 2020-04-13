@@ -28,16 +28,16 @@ export class Speecher extends Base {
     @Command('!speecher help')
     async Help(message: Discord.Message, ...args: string[]) {
         return this.flashMessage(message.channel, `**Usage**
-        \`\`\`
-        声のモデルを設定（val: 0〜3）
-        !speecher voice <val>
-    
-        声の高さを設定（val: 0〜10）
-        !speecher pitch <val>
-    
-        声の速度を設定（val: 0〜10）
-        !speecher speed <val>
-        \`\`\`
+\`\`\`
+声のモデルを設定（val: 0〜3）
+!speecher voice <val>
+
+声の高さを設定（val: 0〜10）
+!speecher pitch <val>
+
+声の速度を設定（val: 0〜10）
+!speecher speed <val>
+\`\`\`
         `, 20000);
     }
 
@@ -73,6 +73,7 @@ export class Speecher extends Base {
 
         const db = await Connection();
         await db.query('update voices set type = ? where user_id = ?;', [VoiceTypes[voice], message.member.id]);
+        this.flashMessage(message.channel, "Done!");
     }
 
     @Command('!speecher pitch')
@@ -93,6 +94,7 @@ export class Speecher extends Base {
 
         const db = await Connection();
         await db.query('update voices set pitch = ? where user_id = ?;', [pitch - 5, message.member.id]);
+        this.flashMessage(message.channel, "Done!");
     }
 
     @Command('!speecher speed')
@@ -113,6 +115,7 @@ export class Speecher extends Base {
 
         const db = await Connection();
         await db.query('update voices set rate = ? where user_id = ?;', [speed ? speed / 10 + 1 : 0, message.member.id]);
+        this.flashMessage(message.channel, "Done!");
     }
 
     @Listen('message')
