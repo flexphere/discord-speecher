@@ -25,6 +25,22 @@ export class Speecher extends Base {
     queue: string[] = [];
 
 
+    @Command('!speecher help')
+    async Help(message: Discord.Message, ...args: string[]) {
+        return this.flashMessage(message.channel, `**Usage**
+        \`\`\`
+        声のモデルを設定（val: 0〜3）
+        !speecher voice <val>
+    
+        声の高さを設定（val: 0〜10）
+        !speecher pitch <val>
+    
+        声の速度を設定（val: 0〜10）
+        !speecher speed <val>
+        \`\`\`
+        `, 20000);
+    }
+
     @Command('!speecher reboot')
     async Reboot(message: Discord.Message, ...args: string[]) {
         process.exit(0);
@@ -37,6 +53,66 @@ export class Speecher extends Base {
         }
 
         this.connection.disconnect();
+    }
+    
+    @Command('!speecher voice')
+    async SetVoice(message: Discord.Message, ...args: string[]) {
+        if (message.author.bot) {
+            return;
+        }
+
+        if ( ! message.member) {
+            return;
+        }
+
+        const voice = Number(args[0]);
+        if (voice === NaN || voice < 0 || voice > 3) {
+            this.flashMessage(message.channel, "0〜3の数字で指定してくれぃ");
+            return;
+        }
+
+        const db = await Connection();
+        await db.query('update voices set type = ? where user_id = ?;', [VoiceTypes[voice], message.member.id]);
+    }
+
+    @Command('!speecher pitch')
+    async SetPitch(message: Discord.Message, ...args: string[]) {
+        if (message.author.bot) {
+            return;
+        }
+
+        if ( ! message.member) {
+            return;
+        }
+
+        const pitch = Number(args[0]);
+        if (pitch === NaN || pitch < 0 || pitch > 10) {
+            this.flashMessage(message.channel, "0〜10の数字で指定してくれぃ");
+            return;
+        }
+
+        const db = await Connection();
+        await db.query('update voices set pitch = ? where user_id = ?;', [pitch - 5, message.member.id]);
+    }
+
+    @Command('!speecher speed')
+    async SetSpeed(message: Discord.Message, ...args: string[]) {
+        if (message.author.bot) {
+            return;
+        }
+
+        if ( ! message.member) {
+            return;
+        }
+
+        const speed = Number(args[0]);
+        if (speed === NaN || speed < 0 || speed > 10) {
+            this.flashMessage(message.channel, "0〜10の数字で指定してくれぃ");
+            return;
+        }
+
+        const db = await Connection();
+        await db.query('update voices set rate = ? where user_id = ?;', [speed ? speed / 10 : 0, message.member.id]);
     }
 
     @Listen('message')
@@ -154,5 +230,11 @@ export class Speecher extends Base {
         text = text.replace(/[ｗ|w]+$/, "笑い");
         text = text.replace(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/, "URL");
         return text;
+    }
+
+    async flashMessage(channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel, context: string | Discord.MessageEmbed, duration: number = 5000) {
+        const message = await channel.send(context);
+        message.delete({timeout: duration});
+        return message;
     }
 }
