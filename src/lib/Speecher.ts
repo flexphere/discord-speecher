@@ -66,7 +66,7 @@ export class Speecher extends Base {
         }
 
         const voice = Number(args[0]);
-        if (voice === NaN || voice < 0 || voice > 3) {
+        if (isNaN(voice) || voice < 0 || voice > 3) {
             this.flashMessage(message.channel, "0〜3の数字で指定してくれぃ");
             return;
         }
@@ -86,7 +86,7 @@ export class Speecher extends Base {
         }
 
         const pitch = Number(args[0]);
-        if (pitch === NaN || pitch < 0 || pitch > 10) {
+        if (isNaN(pitch) || pitch < 0 || pitch > 10) {
             this.flashMessage(message.channel, "0〜10の数字で指定してくれぃ");
             return;
         }
@@ -106,7 +106,7 @@ export class Speecher extends Base {
         }
 
         const speed = Number(args[0]);
-        if (speed === NaN || speed < 0 || speed > 10) {
+        if (isNaN(speed) || speed < 0 || speed > 10) {
             this.flashMessage(message.channel, "0〜10の数字で指定してくれぃ");
             return;
         }
