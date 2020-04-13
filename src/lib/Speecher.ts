@@ -1,6 +1,6 @@
 import Discord from 'discord.js';
 import { Base } from './discordUtil/Base';
-import { Bot, Listen } from './discordUtil/Decorator';
+import { Bot, Listen, Command } from './discordUtil/Decorator';
 import { Connection } from './DB';
 const textToSpeech = require('@google-cloud/text-to-speech');
 
@@ -25,12 +25,12 @@ export class Speecher extends Base {
     queue: string[] = [];
 
 
-    @Command('reboot')
+    @Command('!speecher reboot')
     async Reboot(message: Discord.Message, ...args: string[]) {
-        process.exit();
+        process.exit(0);
     }
 
-    @Command('leave')
+    @Command('!speecher leave')
     async Leave(message: Discord.Message, ...args: string[]) {
         if ( ! this.connection) {
             return;
@@ -55,6 +55,10 @@ export class Speecher extends Base {
             }
 
             if ( ! message.member.voice.selfMute) {
+                return;
+            }
+
+            if ( message.cleanContent.startsWith("!")) {
                 return;
             }
     
