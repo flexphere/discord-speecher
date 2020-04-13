@@ -112,7 +112,7 @@ export class Speecher extends Base {
         }
 
         const db = await Connection();
-        await db.query('update voices set rate = ? where user_id = ?;', [speed ? speed / 10 : 0, message.member.id]);
+        await db.query('update voices set rate = ? where user_id = ?;', [speed ? speed / 10 + 1 : 0, message.member.id]);
     }
 
     @Listen('message')
