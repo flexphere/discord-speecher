@@ -42,6 +42,10 @@ export class Speecher extends Base {
     @Listen('message')
     async Queue(message: Discord.Message, ...args: string[]) {
         try {
+            if ( ! (message.channel instanceof  Discord.TextChannel)) {
+                return;
+            }
+
             if (message.author.bot) {
                 return;
             }
