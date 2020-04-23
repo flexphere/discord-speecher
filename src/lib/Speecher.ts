@@ -121,6 +121,10 @@ export class Speecher extends Base {
     @Listen('message')
     async Queue(message: Discord.Message, ...args: string[]) {
         try {
+            if ( ! (message.channel instanceof  Discord.TextChannel)) {
+                return;
+            }
+
             if (message.author.bot) {
                 return;
             }
@@ -130,6 +134,10 @@ export class Speecher extends Base {
             }
 
             if ( ! message.member.voice.channel) {
+                return;
+            }
+
+            if (message.member.voice.channel.name !== message.channel.name) {
                 return;
             }
 
