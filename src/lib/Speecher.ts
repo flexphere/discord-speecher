@@ -54,6 +54,10 @@ export class Speecher extends Base {
                 return;
             }
 
+            if (message.member.voice.channel.name !== message.channel.name) {
+                return;
+            }
+
             if ( ! message.member.voice.selfMute) {
                 return;
             }
