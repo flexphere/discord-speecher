@@ -70,12 +70,12 @@ export class Speecher extends Base {
                 return;
             }
 
-            if ( ! this.connection) {
-                return;
+            if ( ! this.connection || this.connection.channel.name !== message.member.voice.channel.name) {
+                this.connection = await message.member.voice.channel.join();
             }
 
-            if (this.connection.channel.name !== message.member.voice.channel.name) {
-                this.connection = await message.member.voice.channel.join();
+            if ( ! this.connection) {
+                return;
             }
 
             const content = message.cleanContent;
