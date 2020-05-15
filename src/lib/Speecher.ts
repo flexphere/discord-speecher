@@ -148,8 +148,11 @@ export class Speecher extends Base {
             if ( message.cleanContent.startsWith("!")) {
                 return;
             }
-    
-            this.connection = await message.member.voice.channel.join();
+
+            if ( ! this.connection || this.connection.channel.name !== message.member.voice.channel.name) {
+                this.connection = await message.member.voice.channel.join();
+            }
+
             if ( ! this.connection) {
                 return;
             }
