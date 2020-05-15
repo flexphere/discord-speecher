@@ -1,14 +1,14 @@
 import * as mysql from 'promise-mysql';
 import { Config } from './Config'
 
-let connection: mysql.Connection;
+let connection: mysql.Pool;
 
 export async function Connection() {
     if (connection) {
         return connection;
     }
 
-    connection = await mysql.createConnection({
+    connection = await mysql.createPool({
         host: Config.db.host,
         user: Config.db.user,
         password: Config.db.password,
