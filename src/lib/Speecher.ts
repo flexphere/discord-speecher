@@ -157,7 +157,7 @@ export class Speecher extends Base {
                 return;
             }
 
-            const content = message.cleanContent;
+            const content = message.cleanContent.replace(/\<[^\>]+\>/g, '');
             const client = new textToSpeech.TextToSpeechClient();
             const voice = await this.getOrCreateVoiceConfig(message.member.id);
             const request = {
