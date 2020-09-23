@@ -202,7 +202,7 @@ export class Speecher extends Base {
             content = content.replace(/```[^`]+```/g, ''); // remove code blocks
             const client = new textToSpeech.TextToSpeechClient();
             const voice = await this.getOrCreateVoiceConfig(message.member.id);
-            
+
             if (voice.active === 0 ) {
                 return;
             }
@@ -279,6 +279,7 @@ export class Speecher extends Base {
             type: VoiceTypes[Math.floor(rand(0, 5))],
             rate: (rand(0.8, 2)).toFixed(2), // 0.25〜4  default 1  want 0.8〜2
             pitch: (rand(-5, 5)).toFixed(1), //-20.0 〜 20.0 default 0 want -5〜5
+            active: 1,
         };
         
         const db = await Connection();
