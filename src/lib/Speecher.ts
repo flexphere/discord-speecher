@@ -29,6 +29,15 @@ export class Speecher extends Base {
     async Help(message: Discord.Message, ...args: string[]) {
         return this.flashMessage(message.channel, `**Usage**
 \`\`\`
+有効化
+!speecher activate
+
+無効化
+!speecher deactivate
+
+再起動
+!speecher reboot
+
 声のモデルを設定（val: 0〜3）
 !speecher voice <val>
 
