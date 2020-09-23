@@ -67,7 +67,7 @@ export class Speecher extends Base {
         const voice = await this.getOrCreateVoiceConfig(message.member.id);
         const pitch = voice.pitch + 5;
         const speed = voice.rate ? (voice.rate - 1) * 10  : 0;
-        this.flashMessage(message.channel, `type：${voice.type}, speed:${speed}, pitch:${pitch}`);
+        this.flashMessage(message.channel, `type:${voice.type}, speed:${speed}, pitch:${pitch}`);
     }
 
     @Command('!speecher activate')
