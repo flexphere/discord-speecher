@@ -30,25 +30,44 @@ export class Speecher extends Base {
     async Help(message: Discord.Message, ...args: string[]) {
         return this.flashMessage(message.channel, `**Usage**
 \`\`\`
-有効化
-!speecher activate
-
-無効化
-!speecher deactivate
-
 再起動
 !speecher reboot
 
-声のモデルを設定（val: 0〜3）
+自身の音声設定を確認
+!speecher me
+
+自身の読み上げを有効化
+!speecher activate
+
+自身の読み上げを無効化
+!speecher deactivate
+
+自身の声のモデルを設定（val: 0〜3）
 !speecher voice <val>
 
-声の高さを設定（val: 0〜10）
+自身の声の高さを設定（val: 0〜10）
 !speecher pitch <val>
 
-声の速度を設定（val: 0〜10）
+自身の声の速度を設定（val: 0〜10）
 !speecher speed <val>
 \`\`\`
         `, 20000);
+    }
+
+    @Command('!speecher me')
+    async Me(message: Discord.Message, ...args: string[]) {
+        if (message.author.bot) {
+            return;
+        }
+
+        if ( ! message.member) {
+            return;
+        }
+
+        const voice = await this.getOrCreateVoiceConfig(message.member.id);
+        const pitch = voice.pitch + 5;
+        const speed = voice.rate ? (voice.rate - 1) * 10  : 0;
+        this.flashMessage(message.channel, `type：${voice.type}, speed:${speed}, pitch:${pitch}`);
     }
 
     @Command('!speecher activate')
