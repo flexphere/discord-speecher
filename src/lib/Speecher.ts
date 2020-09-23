@@ -50,6 +50,36 @@ export class Speecher extends Base {
         `, 20000);
     }
 
+    @Command('!speecher activate')
+    async Activate(message: Discord.Message, ...args: string[]) {
+        if (message.author.bot) {
+            return;
+        }
+
+        if ( ! message.member) {
+            return;
+        }
+
+        const db = await Connection();
+        await db.query('update voices set active = 1 where user_id = ?;', [message.member.id]);
+        this.flashMessage(message.channel, "Done!");
+    }
+
+    @Command('!speecher deactivate')
+    async Deactivate(message: Discord.Message, ...args: string[]) {
+        if (message.author.bot) {
+            return;
+        }
+
+        if ( ! message.member) {
+            return;
+        }
+
+        const db = await Connection();
+        await db.query('update voices set active = 0 where user_id = ?;', [message.member.id]);
+        this.flashMessage(message.channel, "Done!");
+    }
+
     @Command('!speecher reboot')
     async Reboot(message: Discord.Message, ...args: string[]) {
         process.exit(0);
@@ -246,7 +276,7 @@ export class Speecher extends Base {
         };
         
         const db = await Connection();
-        await db.query('insert into voices (user_id, type, rate, pitch) values (?, ?, ?, ?);', [id, voice.type, voice.rate, voice.pitch]);
+        await db.query('insert into voices (user_id, type, rate, pitch, active) values (?, ?, ?, ?, 0);', [id, voice.type, voice.rate, voice.pitch]);
 
         return voice;
     }
