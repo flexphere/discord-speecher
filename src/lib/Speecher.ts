@@ -157,7 +157,9 @@ export class Speecher extends Base {
                 return;
             }
 
-            const content = message.cleanContent.replace(/\<[^\>]+\>/g, '');
+            let content = message.cleanContent;
+            content = content.replace(/<[^>]+>/g, ''); // remove custom emoji
+            content = content.replace(/```[^`]+```/g, ''); // remove code blocks
             const client = new textToSpeech.TextToSpeechClient();
             const voice = await this.getOrCreateVoiceConfig(message.member.id);
             const request = {
