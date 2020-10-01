@@ -36,35 +36,38 @@ export class Speecher extends Base {
     queue: string[] = [];
 
 
-    @Command('!speecher help')
+    @Command('!s help')
     async Help(message: Discord.Message, ...args: string[]) {
         return this.flashMessage(message.channel, `**Usage**
 \`\`\`
 再起動
-!speecher reboot
+!s reboot
 
 自身の音声設定を確認
-!speecher me
+!s me
 
 自身の読み上げを有効化
-!speecher activate
+!s activate
 
 自身の読み上げを無効化
-!speecher deactivate
+!s deactivate
 
 自身の声のモデルを設定（val: 0〜3）
-!speecher voice <val>
+!s voice <val>
 
 自身の声の高さを設定（val: 0〜10）
-!speecher pitch <val>
+!s pitch <val>
 
 自身の声の速度を設定（val: 0〜10）
-!speecher speed <val>
+!s speed <val>
+
+GodFieldの効果音を鳴らす
+!s gf <start|die|hit|damage|block|win>
 \`\`\`
         `, 20000);
     }
 
-    @Command('!speecher gf')
+    @Command('!s gf')
     async GodField(message: Discord.Message, ...args: string[]) {
         if (message.author.bot) {
             return;
@@ -111,7 +114,7 @@ export class Speecher extends Base {
         }
     }
 
-    @Command('!speecher me')
+    @Command('!s me')
     async Me(message: Discord.Message, ...args: string[]) {
         if (message.author.bot) {
             return;
@@ -127,7 +130,7 @@ export class Speecher extends Base {
         this.flashMessage(message.channel, `type:${voice.type}, speed:${speed}, pitch:${pitch}`);
     }
 
-    @Command('!speecher activate')
+    @Command('!s activate')
     async Activate(message: Discord.Message, ...args: string[]) {
         if (message.author.bot) {
             return;
@@ -142,7 +145,7 @@ export class Speecher extends Base {
         this.flashMessage(message.channel, "Done!");
     }
 
-    @Command('!speecher deactivate')
+    @Command('!s deactivate')
     async Deactivate(message: Discord.Message, ...args: string[]) {
         if (message.author.bot) {
             return;
@@ -157,12 +160,12 @@ export class Speecher extends Base {
         this.flashMessage(message.channel, "Done!");
     }
 
-    @Command('!speecher reboot')
+    @Command('!s reboot')
     async Reboot(message: Discord.Message, ...args: string[]) {
         process.exit(0);
     }
 
-    @Command('!speecher leave')
+    @Command('!s leave')
     async Leave(message: Discord.Message, ...args: string[]) {
         if ( ! this.connection) {
             return;
@@ -171,7 +174,7 @@ export class Speecher extends Base {
         this.connection.disconnect();
     }
     
-    @Command('!speecher voice')
+    @Command('!s voice')
     async SetVoice(message: Discord.Message, ...args: string[]) {
         if (message.author.bot) {
             return;
@@ -192,7 +195,7 @@ export class Speecher extends Base {
         this.flashMessage(message.channel, "Done!");
     }
 
-    @Command('!speecher pitch')
+    @Command('!s pitch')
     async SetPitch(message: Discord.Message, ...args: string[]) {
         if (message.author.bot) {
             return;
@@ -213,7 +216,7 @@ export class Speecher extends Base {
         this.flashMessage(message.channel, "Done!");
     }
 
-    @Command('!speecher speed')
+    @Command('!s speed')
     async SetSpeed(message: Discord.Message, ...args: string[]) {
         if (message.author.bot) {
             return;
