@@ -1,3 +1,4 @@
+import * as path from 'path';
 import Discord from 'discord.js';
 import { Base } from './discordUtil/Base';
 import { Bot, Listen, Command } from './discordUtil/Decorator';
@@ -9,6 +10,15 @@ const VoiceTypes = [
     'ja-JP-Standard-B',
     'ja-JP-Standard-C',
     'ja-JP-Standard-D',
+];
+
+const GodFieldSounds = [
+    'start',
+    'die',
+    'hit',
+    'damage',
+    'block',
+    'win',
 ];
 
 interface VoiceConfig {
@@ -52,6 +62,53 @@ export class Speecher extends Base {
 !speecher speed <val>
 \`\`\`
         `, 20000);
+    }
+
+    @Command('!speecher gf')
+    async GodField(message: Discord.Message, ...args: string[]) {
+        if (message.author.bot) {
+            return;
+        }
+
+        if ( ! message.member) {
+            console.log('not member');
+            return;
+        }
+
+        if ( ! GodFieldSounds.includes(args[0][0])) {
+            console.log('no sound');
+            return;
+        }
+
+        if ( ! (message.channel instanceof  Discord.TextChannel)) {
+            console.log('not in textchannel');
+            return;
+        }
+
+        if ( ! message.member.voice.channel) {
+            console.log('not in voicechannel');
+            return;
+        }
+
+        if (message.member.voice.channel.name !== message.channel.name) {
+            console.log('voicechannel name not match textchannel name');
+            return;
+        }
+
+        if ( ! this.connection || this.connection.channel.name !== message.member.voice.channel.name) {
+            this.connection = await message.member.voice.channel.join();
+        }
+
+        if ( ! this.connection) {
+            return;
+        }
+
+        const audiofile = path.resolve('./') + `/sounds/${args[0]}.mp3`;
+        this.queue.push(audiofile);
+
+        if ( ! this.playing) {
+            this.Speak();
+        }
     }
 
     @Command('!speecher me')
