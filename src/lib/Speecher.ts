@@ -19,6 +19,9 @@ const GodFieldSounds = [
     'damage',
     'block',
     'win',
+    'money',
+    'draw',
+    'reflect'
 ];
 
 interface VoiceConfig {
@@ -62,7 +65,7 @@ export class Speecher extends Base {
 !s speed <val>
 
 GodFieldの効果音を鳴らす
-!s gf <start|die|hit|damage|block|win>
+!s gf <start|die|hit|damage|reflect|block|money|win|draw>
 \`\`\`
         `, 20000);
     }
