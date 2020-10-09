@@ -279,9 +279,7 @@ GodFieldの効果音を鳴らす
                 return;
             }
 
-            let content = message.cleanContent;
-            content = content.replace(/<[^>]+>/g, ''); // remove custom emoji
-            content = content.replace(/```[^`]+```/g, ''); // remove code blocks
+            const content = message.cleanContent;
             const client = new textToSpeech.TextToSpeechClient();
             const voice = await this.getOrCreateVoiceConfig(message.member.id);
 
@@ -373,6 +371,8 @@ GodFieldの効果音を鳴らす
     filterContent(text) {
         text = text.replace(/[ｗ|w]+$/, "笑い");
         text = text.replace(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/, "URL");
+        text = text.replace(/```[^`]+```/g, ''); // remove code blocks
+        text = text.replace(/<([^\d]+)\d+>/g, "$1");
         return text;
     }
 
