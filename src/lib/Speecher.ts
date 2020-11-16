@@ -373,6 +373,7 @@ GodFieldの効果音を鳴らす
         text = text.replace(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/, "URL");
         text = text.replace(/```[^`]+```/g, ''); // remove code blocks
         text = text.replace(/<([^\d]+)\d+>/g, "$1");
+        text = text.replace(/^>.*\n/mg, "");
         return text;
     }
 
