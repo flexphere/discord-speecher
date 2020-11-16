@@ -271,9 +271,9 @@ GodFieldの効果音を鳴らす
                 return;
             }
 
-            if ( ! this.connection || this.connection.channel.name !== message.member.voice.channel.name) {
+            // if ( ! this.connection || this.connection.channel.name !== message.member.voice.channel.name) {
                 this.connection = await message.member.voice.channel.join();
-            }
+            // }
 
             if ( ! this.connection) {
                 return;
