@@ -32,11 +32,16 @@ interface VoiceConfig {
     [key:string]: any
 }
 
+interface VoiceQueue {
+    channel: Discord.VoiceChannel
+    text: string
+}
+
 @Bot()
 export class Speecher extends Base {
     connection!: Discord.VoiceConnection;
     playing: boolean = false;
-    queue: string[] = [];
+    queue: VoiceQueue[] = [];
 
 
     @Command('!s help')
@@ -101,16 +106,19 @@ GodFieldの効果音を鳴らす
             return;
         }
 
-        if ( ! this.connection || this.connection.channel.name !== message.member.voice.channel.name) {
-            this.connection = await message.member.voice.channel.join();
+        if (args[0] === 'die') {
+            this.flashMessage(message.channel, ':shonnner:', 5000);
         }
 
-        if ( ! this.connection) {
-            return;
+        if (args[0] === 'damage') {
+            this.flashMessage(message.channel, ':seanSimura:', 5000);
         }
 
         const audiofile = path.resolve('./') + `/sounds/${args[0]}.mp3`;
-        this.queue.push(audiofile);
+        this.queue.push({
+            channel: message.member.voice.channel,
+            text: audiofile
+        });
 
         if ( ! this.playing) {
             this.Speak();
@@ -243,7 +251,7 @@ GodFieldの効果音を鳴らす
     @Listen('message')
     async Queue(message: Discord.Message, ...args: string[]) {
         try {
-            if ( ! (message.channel instanceof  Discord.TextChannel)) {
+            if ( ! (message.channel instanceof Discord.TextChannel)) {
                 return;
             }
 
@@ -271,14 +279,6 @@ GodFieldの効果音を鳴らす
                 return;
             }
 
-            // if ( ! this.connection || this.connection.channel.name !== message.member.voice.channel.name) {
-                this.connection = await message.member.voice.channel.join();
-            // }
-
-            if ( ! this.connection) {
-                return;
-            }
-
             const content = message.cleanContent;
             const client = new textToSpeech.TextToSpeechClient();
             const voice = await this.getOrCreateVoiceConfig(message.member.id);
@@ -303,7 +303,10 @@ GodFieldの効果音を鳴らす
             const [response] = await client.synthesizeSpeech(request);
             const buffer = Buffer.from(response.audioContent.buffer);
             const dataurl = `data:‎audio/mpeg;base64,${buffer.toString('base64')}`;
-            this.queue.push(dataurl);
+            this.queue.push({
+                channel: message.member.voice.channel,
+                text: dataurl
+            });
 
             if ( ! this.playing) {
                 this.Speak();
@@ -333,8 +336,16 @@ GodFieldの効果音を鳴らす
     async Speak() {
         if (this.queue.length) {
             const data = this.queue.shift();
-            if ( ! data) return;
-            const dispatcher = this.connection.play(data);
+            if ( ! data) {
+                return;
+            }
+
+            this.connection = await data.channel.join();
+            if ( ! this.connection) {
+                return;
+            }
+
+            const dispatcher = this.connection.play(data.text);
             this.playing = true;
             dispatcher.on('finish', () => {
                 this.playing = false;
