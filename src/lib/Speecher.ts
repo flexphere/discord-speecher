@@ -200,7 +200,7 @@ export class Speecher extends Base {
                 this.Speak();
             }
         } catch (e) {
-            console.error(e);
+            logger.fatal(e);
             message.channel.send('｡ﾟ(ﾟ´Д｀ﾟ)ﾟ｡ごめん。エラーだわ');
         }
     }
@@ -209,7 +209,7 @@ export class Speecher extends Base {
     async stateUpdate(...arg) {
         const beforeState:Discord.VoiceState = arg[0];
         const afterState:Discord.VoiceState = arg[1];
-        
+
         // user left the channel
         if (beforeState.channelID && !afterState.channelID) {
             const memberCount = <number>beforeState.channel?.members?.size;
