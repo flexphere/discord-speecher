@@ -206,10 +206,10 @@ export class Speecher extends Base {
     }
 
     @Listen('voiceStateUpdate')
-    async stateUpdate(...arg) {//beforeState:Discord.VoiceState, afterState:Discord.VoiceState
-        console.log(arg);
-        const beforeState = arg[0];
-        const afterState = arg[1];
+    async stateUpdate(...arg) {
+        const beforeState:Discord.VoiceState = arg[0];
+        const afterState:Discord.VoiceState = arg[1];
+        
         // user left the channel
         if (beforeState.channelID && !afterState.channelID) {
             const memberCount = <number>beforeState.channel?.members?.size;
