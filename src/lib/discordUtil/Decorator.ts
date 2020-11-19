@@ -1,4 +1,6 @@
+import { DiscordAPIError } from 'discord.js';
 import 'reflect-metadata';
+import Discord from 'discord.js';
 
 const KEY = Symbol('discord-event');
 
@@ -39,6 +41,10 @@ export function Command(command: string) {
         const originalMethod = descriptor.value;
         descriptor.value = function(...args: any[]){
             if (args[0].author.bot) {
+                return;
+            }
+
+            if ( ! args[0].member) {
                 return;
             }
             

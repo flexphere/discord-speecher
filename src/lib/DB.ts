@@ -1,19 +1,22 @@
-import * as mysql from 'promise-mysql';
-import { Config } from './Config'
+import { Config } from './Config';
+const sqlite3 = require('sqlite3');
 
-let connection: mysql.Pool;
+const db = new sqlite3.Database(Config.db);
 
-export async function Connection() {
-    if (connection) {
-        return connection;
-    }
+export function query(sql, params): Object {
+	return new Promise((resolve, reject) => {
+		db.get(sql, params, (err, row) => {
+			if (err) reject(err);
+			resolve(row);
+		});
+	});
+}
 
-    connection = await mysql.createPool({
-        host: Config.db.host,
-        user: Config.db.user,
-        password: Config.db.password,
-        database: Config.db.database,
-        multipleStatements: true
-    });
-    return connection;
+export function exec(sql, params) {
+	return new Promise((resolve, reject) => {
+		db.run(sql, params, (err) => {
+			if (err) reject(err);
+			resolve();
+		});
+	});
 }

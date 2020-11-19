@@ -1,9 +1,41 @@
+const textToSpeech = require('@google-cloud/text-to-speech');
+
 import * as path from 'path';
-import Discord from 'discord.js';
+import * as db from './DB';
+import Discord, { DiscordAPIError, ClientVoiceManager } from 'discord.js';
+
+import { logger } from './Logger';
 import { Base } from './discordUtil/Base';
 import { Bot, Listen, Command } from './discordUtil/Decorator';
-import { Connection } from './DB';
-const textToSpeech = require('@google-cloud/text-to-speech');
+import HelpText from './HelpText';
+
+interface VoiceConfig {
+    type: string
+    rate: number
+    pitch: number
+    active: number
+}
+interface SpeechQueue {
+    channel: Discord.VoiceChannel
+    content: string
+}
+
+interface SpeechMessage {
+    member: Discord.GuildMember
+    textChannel: Discord.TextChannel
+    voiceChannel: Discord.VoiceChannel
+    content: string
+}
+
+
+type RequiredAndNotNull<T> = {
+    [P in keyof T]-?: Exclude<T[P], null | undefined>
+}
+
+type RequireAndNotNullSome<T, K extends keyof T> = 
+    RequiredAndNotNull<Pick<T, K>> & Omit<T, K>;
+
+type Message = RequireAndNotNullSome<Discord.Message, 'member' | 'channel'>
 
 const VoiceTypes = [
     'ja-JP-Standard-A',
@@ -24,100 +56,36 @@ const GodFieldSounds = [
     'reflect'
 ];
 
-interface VoiceConfig {
-    type: string
-    rate: number
-    pitch: number
-    active: number
-    [key:string]: any
-}
-
-interface VoiceQueue {
-    channel: Discord.VoiceChannel
-    text: string
+interface VoiceState {
+    channel?: Discord.VoiceChannel
 }
 
 @Bot()
 export class Speecher extends Base {
-    connection!: Discord.VoiceConnection;
     playing: boolean = false;
-    queue: VoiceQueue[] = [];
-
+    queue: SpeechQueue[] = [];
 
     @Command('!s help')
-    async Help(message: Discord.Message, ...args: string[]) {
-        return this.flashMessage(message.channel, `**Usage**
-\`\`\`
-再起動
-!s reboot
-
-自身の音声設定を確認
-!s me
-
-自身の読み上げを有効化
-!s activate
-
-自身の読み上げを無効化
-!s deactivate
-
-自身の声のモデルを設定（val: 0〜3）
-!s voice <val>
-
-自身の声の高さを設定（val: 0〜10）
-!s pitch <val>
-
-自身の声の速度を設定（val: 0〜10）
-!s speed <val>
-
-GodFieldの効果音を鳴らす
-!s gf <start|die|hit|damage|reflect|block|money|win|draw>
-\`\`\`
-        `, 20000);
+    async Help(message: Message) {
+        return this.flashMessage(message.channel, HelpText, 20000);
     }
 
     @Command('!s gf')
     async GodField(message: Discord.Message, ...args: string[]) {
-        if (message.author.bot) {
+        const speechMessage = this.isSpeechMessage(message);
+        if ( ! speechMessage) {
             return;
         }
-
-        if ( ! message.member) {
-            console.log('not member');
-            return;
-        }
-
+        
         if ( ! GodFieldSounds.includes(args[0][0])) {
-            console.log('no sound');
+            logger.debug(`audio file not found ${args[0][0]}`)
             return;
-        }
-
-        if ( ! (message.channel instanceof  Discord.TextChannel)) {
-            console.log('not in textchannel');
-            return;
-        }
-
-        if ( ! message.member.voice.channel) {
-            console.log('not in voicechannel');
-            return;
-        }
-
-        if (message.member.voice.channel.name !== message.channel.name) {
-            console.log('voicechannel name not match textchannel name');
-            return;
-        }
-
-        if (args[0] === 'die') {
-            this.flashMessage(message.channel, ':shonnner:', 5000);
-        }
-
-        if (args[0] === 'damage') {
-            this.flashMessage(message.channel, ':seanSimura:', 5000);
         }
 
         const audiofile = path.resolve('./') + `/sounds/${args[0]}.mp3`;
         this.queue.push({
-            channel: message.member.voice.channel,
-            text: audiofile
+            channel: speechMessage.voiceChannel,
+            content: audiofile
         });
 
         if ( ! this.playing) {
@@ -126,173 +94,92 @@ GodFieldの効果音を鳴らす
     }
 
     @Command('!s me')
-    async Me(message: Discord.Message, ...args: string[]) {
-        if (message.author.bot) {
-            return;
-        }
-
-        if ( ! message.member) {
-            return;
-        }
-
+    async Me(message: Message) {
         const voice = await this.getOrCreateVoiceConfig(message.member.id);
         const pitch = voice.pitch + 5;
-        const speed = voice.rate ? (voice.rate - 1) * 10  : 0;
-        this.flashMessage(message.channel, `type:${voice.type}, speed:${speed}, pitch:${pitch}`);
+        const speed = voice.rate ? (voice.rate - 1) * 10  : 0; // TODO: to int 
+        this.flashMessage(message.channel, `type:${voice.type}, speed:${speed.toFixed(2)}, pitch:${pitch.toFixed(2)}`);
     }
 
     @Command('!s activate')
-    async Activate(message: Discord.Message, ...args: string[]) {
-        if (message.author.bot) {
-            return;
-        }
-
-        if ( ! message.member) {
-            return;
-        }
-
-        const db = await Connection();
-        await db.query('update voices set active = 1 where user_id = ?;', [message.member.id]);
-        this.flashMessage(message.channel, "Done!");
+    async Activate({member, channel}: Message, ...args: string[]) {
+        await this.ActivateVoiceStatus(member.id);
+        this.flashMessage(channel, "Done!");
     }
 
     @Command('!s deactivate')
-    async Deactivate(message: Discord.Message, ...args: string[]) {
-        if (message.author.bot) {
-            return;
-        }
-
-        if ( ! message.member) {
-            return;
-        }
-
-        const db = await Connection();
-        await db.query('update voices set active = 0 where user_id = ?;', [message.member.id]);
-        this.flashMessage(message.channel, "Done!");
+    async Deactivate({member, channel}: Message, ...args: string[]) {
+        await this.DeactivateVoiceStatus(member.id);
+        this.flashMessage(channel, "Done!");
     }
 
     @Command('!s reboot')
-    async Reboot(message: Discord.Message, ...args: string[]) {
+    async Reboot() {
         process.exit(0);
     }
 
     @Command('!s leave')
-    async Leave(message: Discord.Message, ...args: string[]) {
-        if ( ! this.connection) {
-            return;
-        }
-
-        this.connection.disconnect();
+    async Leave(message: Message) {
+        const conn = this.client.voice?.connections.find(v => v.channel.id === message.member.voice.channel?.id)
+        conn?.disconnect();
     }
     
     @Command('!s voice')
-    async SetVoice(message: Discord.Message, ...args: string[]) {
-        if (message.author.bot) {
-            return;
-        }
-
-        if ( ! message.member) {
-            return;
-        }
-
+    async SetVoice({member, channel}: Message, ...args: string[]) {
         const voice = Number(args[0]);
         if (isNaN(voice) || voice < 0 || voice > 3) {
-            this.flashMessage(message.channel, "0〜3の数字で指定してくれぃ");
+            this.flashMessage(channel, "0〜3の数字で指定してくれぃ");
             return;
         }
 
-        const db = await Connection();
-        await db.query('update voices set type = ? where user_id = ?;', [VoiceTypes[voice], message.member.id]);
-        this.flashMessage(message.channel, "Done!");
+        this.UpdateVoiceType(VoiceTypes[voice], member.id);
+        this.flashMessage(channel, "Done!");
     }
 
     @Command('!s pitch')
-    async SetPitch(message: Discord.Message, ...args: string[]) {
-        if (message.author.bot) {
-            return;
-        }
-
-        if ( ! message.member) {
-            return;
-        }
-
+    async SetPitch({member, channel}: Message, ...args: string[]) {
         const pitch = Number(args[0]);
         if (isNaN(pitch) || pitch < 0 || pitch > 10) {
-            this.flashMessage(message.channel, "0〜10の数字で指定してくれぃ");
+            this.flashMessage(channel, "0〜10の数字で指定してくれぃ");
             return;
         }
 
-        const db = await Connection();
-        await db.query('update voices set pitch = ? where user_id = ?;', [pitch - 5, message.member.id]);
-        this.flashMessage(message.channel, "Done!");
+        await this.UpdateVoicePitch(pitch - 5, member.id);
+        this.flashMessage(channel, "Done!");
     }
 
     @Command('!s speed')
-    async SetSpeed(message: Discord.Message, ...args: string[]) {
-        if (message.author.bot) {
-            return;
-        }
-
-        if ( ! message.member) {
-            return;
-        }
-
+    async SetSpeed({member, channel}: Message, ...args: string[]) {
         const speed = Number(args[0]);
         if (isNaN(speed) || speed < 0 || speed > 10) {
-            this.flashMessage(message.channel, "0〜10の数字で指定してくれぃ");
+            this.flashMessage(channel, "0〜10の数字で指定してくれぃ");
             return;
         }
 
-        const db = await Connection();
-        await db.query('update voices set rate = ? where user_id = ?;', [speed ? speed / 10 + 1 : 0, message.member.id]);
-        this.flashMessage(message.channel, "Done!");
+        await this.UpdateVoiceSpeed(speed ? speed / 10 + 1 : 0, member.id);
+        this.flashMessage(channel, "Done!");
     }
 
     @Listen('message')
     async Queue(message: Discord.Message, ...args: string[]) {
         try {
-            if ( ! (message.channel instanceof Discord.TextChannel)) {
+            const speechMessage = this.isSpeechMessage(message);
+            if ( ! speechMessage) {
                 return;
             }
 
-            if (message.author.bot) {
-                return;
-            }
-
-            if ( ! message.member) {
-                return;
-            }
-
-            if ( ! message.member.voice.channel) {
-                return;
-            }
-
-            if (message.member.voice.channel.name !== message.channel.name) {
-                return;
-            }
-
-            if ( ! message.member.voice.selfMute) {
-                return;
-            }
-
-            if ( message.cleanContent.startsWith("!")) {
-                return;
-            }
-
-            const content = message.cleanContent;
             const client = new textToSpeech.TextToSpeechClient();
-            const voice = await this.getOrCreateVoiceConfig(message.member.id);
+            const voice = await this.getOrCreateVoiceConfig(speechMessage.member.id);
 
             if (voice.active === 0 ) {
                 return;
             }
 
             const request = {
-                input: { text: this.filterContent(content) },
+                input: { text: this.filterContent(speechMessage.content) },
                 voice: {
                     languageCode: 'ja-JP',
                     name: voice.type
-                    // ssmlGender: 'NEUTRAL',
                 },
                 audioConfig: {
                     audioEncoding: 'MP3',
@@ -304,9 +191,10 @@ GodFieldの効果音を鳴らす
             const buffer = Buffer.from(response.audioContent.buffer);
             const dataurl = `data:‎audio/mpeg;base64,${buffer.toString('base64')}`;
             this.queue.push({
-                channel: message.member.voice.channel,
-                text: dataurl
+                channel: speechMessage.voiceChannel,
+                content: dataurl
             });
+            logger.debug(`Queue: ${speechMessage.voiceChannel.name} - ${speechMessage.content}`);
 
             if ( ! this.playing) {
                 this.Speak();
@@ -318,52 +206,105 @@ GodFieldの効果音を鳴らす
     }
 
     @Listen('voiceStateUpdate')
-    async stateUpdate(...args: any) {
-        if ( ! this.connection) {
-            return;
-        }
-
-        if ( this.connection.status !== 0 ) {
-            return;
-        }
-
-        const memberCount = this.connection.channel.members.array().length;
-        if (memberCount < 2) {
-            this.connection.disconnect();
+    async stateUpdate(...arg) {//beforeState:Discord.VoiceState, afterState:Discord.VoiceState
+        console.log(arg);
+        const beforeState = arg[0];
+        const afterState = arg[1];
+        // user left the channel
+        if (beforeState.channelID && !afterState.channelID) {
+            const memberCount = <number>beforeState.channel?.members?.size;
+            if (memberCount < 2) {
+                const conn = this.client.voice?.connections.find(v => v.channel.id === beforeState.channelID)
+                conn?.disconnect();
+            }
         }
     }
 
     async Speak() {
-        if (this.queue.length) {
-            const data = this.queue.shift();
-            if ( ! data) {
-                return;
-            }
-
-            this.connection = await data.channel.join();
-            if ( ! this.connection) {
-                return;
-            }
-
-            const dispatcher = this.connection.play(data.text);
-            this.playing = true;
-            dispatcher.on('finish', () => {
-                this.playing = false;
-                this.Speak();
-            });
+        const speech = this.queue.shift();
+        if ( ! speech) {
+            return;
         }
+
+        const conn = await speech.channel.join();
+        if ( ! conn) {
+            return;
+        }
+
+        const dispatcher = conn.play(speech.content);
+        this.playing = true;
+
+        dispatcher.on('finish', () => {
+            this.playing = false;
+            this.Speak();
+        });
     }
 
-    async getOrCreateVoiceConfig(id: string):Promise<VoiceConfig> {
-        const db = await Connection();
-        const rows = await db.query('select * from voices where user_id = ?', [id]);
-        if ( ! rows.length) {
+    async getOrCreateVoiceConfig(id: string): Promise<VoiceConfig> {
+        const row = this.getVoiceConfig(id);
+        if ( ! row) {
             return this.createVoiceConfig(id);
         }
-        return rows[0];
+        return row;
     }
 
-    async createVoiceConfig(id: string):Promise<VoiceConfig> {
+    isSpeechMessage(message:Discord.Message): SpeechMessage | null {
+        if (message.author.bot) {
+            return null;
+        }
+
+        if ( ! message.member) {
+            return null;
+        }
+
+        if ( ! (message.member instanceof Discord.GuildMember)) {
+            return null;
+        }
+
+        if ( ! (message.member.voice.channel instanceof Discord.VoiceChannel)) {
+            return null;
+        }
+        
+        if ( ! (message.channel instanceof Discord.TextChannel)) {
+            return null;
+        }
+
+        if (message.member.voice.channel.name !== message.channel.name) {
+            return null;
+        }
+
+        if ( message.cleanContent.startsWith("!")) {
+            return null;
+        }
+
+        return {
+            member: message.member,
+            textChannel: message.channel,
+            voiceChannel: message.member.voice.channel,
+            content: message.cleanContent
+        }
+    }
+
+    filterContent(text:string): string {
+        text = text.replace(/[ｗ|w]+$/, "笑い");
+        text = text.replace(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/, "URL");
+        text = text.replace(/```[^`]+```/g, ''); // remove code blocks
+        text = text.replace(/<([^\d]+)\d+>/g, "$1");
+        text = text.replace(/^>.*/mg, "");
+        return text;
+    }
+
+    async flashMessage(channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel, context: string | Discord.MessageEmbed, duration: number = 5000): Promise<Discord.Message> {
+        const message = await channel.send(context);
+        message.delete({timeout: duration});
+        return message;
+    }
+
+    async getVoiceConfig(id: string): Promise<VoiceConfig> {
+        return await db.query('select * from voices where user_id = ?', [id]) as VoiceConfig;
+    }
+
+    async createVoiceConfig(id: string): Promise<VoiceConfig> {
         const rand = (min, max) => Math.random() * (max - min) + min;
 
         const voice = {
@@ -373,24 +314,33 @@ GodFieldの効果音を鳴らす
             active: 1,
         };
         
-        const db = await Connection();
-        await db.query('insert into voices (user_id, type, rate, pitch, active) values (?, ?, ?, ?, 0);', [id, voice.type, voice.rate, voice.pitch]);
+        await db.exec('insert into voices (user_id, type, rate, pitch, active) values (?, ?, ?, ?, 0);', [id, voice.type, voice.rate, voice.pitch]);
 
         return voice;
     }
 
-    filterContent(text) {
-        text = text.replace(/[ｗ|w]+$/, "笑い");
-        text = text.replace(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/, "URL");
-        text = text.replace(/```[^`]+```/g, ''); // remove code blocks
-        text = text.replace(/<([^\d]+)\d+>/g, "$1");
-        text = text.replace(/^>.*/mg, "");
-        return text;
+    async UpdateVoicePitch(pitch, member_id) {
+        logger.debug(`updating voice config: pitch=${pitch} member_id=${member_id}`);
+        await db.exec('update voices set pitch = ? where user_id = ?;', [pitch, member_id]);
     }
 
-    async flashMessage(channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel, context: string | Discord.MessageEmbed, duration: number = 5000) {
-        const message = await channel.send(context);
-        message.delete({timeout: duration});
-        return message;
+    async UpdateVoiceSpeed(speed, member_id) {
+        logger.debug(`updating voice config: speed=${speed} member_id=${member_id}`);
+        await db.exec('update voices set rate = ? where user_id = ?;', [speed, member_id]);
+    }
+
+    async UpdateVoiceType(voice_type, member_id) {
+        logger.debug(`updating voice config: type=${voice_type} member_id=${member_id}`);
+        await db.exec('update voices set type = ? where user_id = ?;', [voice_type, member_id]);
+    }
+    
+    async ActivateVoiceStatus(member_id) {
+        logger.debug(`activating voice: member_id=${member_id}`);
+        await db.exec('update voices set active = 1 where user_id = ?;', [member_id]);
+    }
+    
+    async DeactivateVoiceStatus(member_id) {
+        logger.debug(`deactivating voice: member_id=${member_id}`);
+        await db.exec('update voices set active = 0 where user_id = ?;', [member_id]);
     }
 }

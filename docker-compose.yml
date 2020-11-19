@@ -1,0 +1,12 @@
+version: "3"
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      - DISCORD_TOKEN=__YOUR_DISCORD_API_KEY__
+      - GOOGLE_APPLICATION_CREDENTIALS=key.json
+      - DB_FILE=db/speecher.db
+    volumes:
+      - "./db:/workspace/db"
+    
