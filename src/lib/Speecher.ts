@@ -82,7 +82,7 @@ export class Speecher extends Base {
             return;
         }
 
-        const audiofile = path.resolve('./') + `/sounds/${args[0]}.mp3`;
+        const audiofile = path.resolve('./') + `/sounds/${args[0][0]}.mp3`;
         this.queue.push({
             channel: speechMessage.voiceChannel,
             content: audiofile
@@ -96,9 +96,9 @@ export class Speecher extends Base {
     @Command('!s me')
     async Me(message: Message) {
         const voice = await this.getOrCreateVoiceConfig(message.member.id);
-        const pitch = voice.pitch + 5;
-        const speed = voice.rate ? (voice.rate - 1) * 10  : 0; // TODO: to int 
-        this.flashMessage(message.channel, `type:${voice.type}, speed:${speed.toFixed(2)}, pitch:${pitch.toFixed(2)}`);
+        const pitch = <number>voice.pitch + 5;
+        const speed = (<number>voice.rate - 1) * 10;
+        this.flashMessage(message.channel, `type:${voice.type}, speed:${speed.toFixed()}, pitch:${pitch.toFixed()}`);
     }
 
     @Command('!s activate')
@@ -165,6 +165,10 @@ export class Speecher extends Base {
         try {
             const speechMessage = this.isSpeechMessage(message);
             if ( ! speechMessage) {
+                return;
+            }
+
+            if (speechMessage.content.startsWith("!")) {
                 return;
             }
 
@@ -245,11 +249,8 @@ export class Speecher extends Base {
     }
 
     async getOrCreateVoiceConfig(id: string): Promise<VoiceConfig> {
-        const row = this.getVoiceConfig(id);
-        if ( ! row) {
-            return this.createVoiceConfig(id);
-        }
-        return row;
+        let voiceConfig = await this.getVoiceConfig(id);
+        return voiceConfig ?? await this.createVoiceConfig(id);
     }
 
     isSpeechMessage(message:Discord.Message): SpeechMessage | null {
@@ -277,10 +278,6 @@ export class Speecher extends Base {
             return null;
         }
 
-        if ( message.cleanContent.startsWith("!")) {
-            return null;
-        }
-
         return {
             member: message.member,
             textChannel: message.channel,
@@ -304,7 +301,7 @@ export class Speecher extends Base {
         return message;
     }
 
-    async getVoiceConfig(id: string): Promise<VoiceConfig> {
+    async getVoiceConfig(id: string): Promise<VoiceConfig | undefined> {
         return await db.query('select * from voices where user_id = ?', [id]) as VoiceConfig;
     }
 
