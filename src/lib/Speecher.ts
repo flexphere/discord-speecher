@@ -168,6 +168,10 @@ export class Speecher extends Base {
                 return;
             }
 
+            if ( ! speechMessage.member.voice.selfMute) {
+                return;
+            }
+
             const client = new textToSpeech.TextToSpeechClient();
             const voice = await this.getOrCreateVoiceConfig(speechMessage.member.id);
 
