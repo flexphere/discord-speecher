@@ -36,8 +36,7 @@ interface APIResponse{
 export class Jisho extends Base {
     @Command('!j help')
     async Help(message: Discord.Message) {
-        console.log("help");
-        message.channel.send("help!");
+        message.channel.send("help!"); //TO DO
     }
 
     @Command('!j jisho')
@@ -90,8 +89,6 @@ class JishoEmbed{
     };
     public Phrase():Discord.MessageEmbed{
         const phraseObj:Phrase = this.response.data[this.index];
-        console.log(this.index);
-        console.log(this.response.data[this.index]);
         const embed = new Discord.MessageEmbed()
         .setColor('#2dc479')
         .setTitle(phraseObj.japanese[0].word)
@@ -120,7 +117,6 @@ class JishoEmbed{
         
         NextPageReaction.on('collect',async collected=>{
             this.page.next();
-            console.log(`Going to page ${this.index}`);
             await msg.edit(this.Phrase());
             this.addReactions(msg,this.index,this.response.data.length);
         });
@@ -132,7 +128,6 @@ class JishoEmbed{
 
     }
     public async addReactions(msg:Discord.Message,index:number,pages:number){
-        console.log(`${index}/${pages}`)
         await msg.reactions.removeAll();
         msg.react("❌");
 
