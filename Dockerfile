@@ -5,7 +5,7 @@ WORKDIR /workspace
 RUN apk update && apk upgrade
 RUN apk add gcc make g++ ffmpeg python
 
-COPY package.json . 
+COPY package.json package-lock.json ./
 RUN npm install
 
 COPY . .
