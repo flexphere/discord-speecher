@@ -36,12 +36,19 @@ interface APIResponse{
 export class Jisho extends Base {
     @Command('!j help')
     async Help(message: Discord.Message) {
-        message.channel.send("help!"); //TO DO
+        const embed = new Discord.MessageEmbed()
+        .setColor('#4ab7ff')
+        .setTitle('​Help')
+        .addField('コマンド / Command','jisho',true)
+        .addField('​使用方法 / How to Use','`!j jisho [言葉]`',true)
+        .addField('​備考', `​これは翻訳システムではありません。​辞書です。​\r\n文を翻訳しないでください。`,false)
+        .addField('Notes',`This is not a translation system. It's a dictionnary.\r\nDon't try to translate sentences.`,false);
+        message.channel.send(embed); //TO DO
     }
 
     @Command('!j jisho')
     async Eigo(message: Discord.Message, ...args: string[]) {
-        const word:string = args[0];
+        const word:string = (args.length>1) ? args.join(' ') : args[0];
         const req = await fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(word)}`);
 
         if(req.ok){
@@ -53,8 +60,12 @@ export class Jisho extends Base {
                 HandleDeleteReaction(message,msg,embed);
             }
             else{
-                let embed:JishoEmbed = new JishoEmbed(res);
+                let embed:JishoEmbed|null = new JishoEmbed(res);
                 const msg = await message.channel.send(embed.Empty());
+                setTimeout(()=>{
+                    embed = null;
+                    msg.delete();
+                },3000)
             }
             
         }
@@ -80,13 +91,16 @@ class JishoEmbed{
 
     private response:APIResponse;
     private index:number = 0;
+
     constructor(response:APIResponse){
         this.response = response;
     }
+
     public page = {
         next:()=>{this.index = this.index+1},
         previous:()=>{this.index= this.index-1}
     };
+    
     public Phrase():Discord.MessageEmbed{
         const phraseObj:Phrase = this.response.data[this.index];
         const embed = new Discord.MessageEmbed()
@@ -104,6 +118,7 @@ class JishoEmbed{
         .setDescription(`**​​検索結果はありませんでした。/ No results found.**`)
         return embed;
     };
+
     public handlePaging(msg:Discord.Message){
         this.addReactions(msg,this.index,this.response.data.length);
         const nextPageFilter = (reaction:MessageReaction,user:Discord.User) => {
