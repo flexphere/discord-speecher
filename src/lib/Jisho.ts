@@ -91,10 +91,10 @@ class JishoEmbed{
         const phraseObj:Phrase = this.response.data[this.index];
         const embed = new Discord.MessageEmbed()
         .setColor('#2dc479')
-        .setTitle(phraseObj.japanese[0].word)
+        .setTitle(phraseObj.japanese[0].word ?? phraseObj.senses[0].english_definitions.join(', '))
         .setDescription(`**${phraseObj.senses[0].parts_of_speech.join(', ')}**\r\n${phraseObj.senses[0].english_definitions.join(', ')}`)
         .addField('Reading',phraseObj.japanese[0].reading)
-        .addField('Page',`${this.index+1}/${this.response.data.length+1}`)
+        .addField('Page',`${this.index+1}/${this.response.data.length}`)
         return embed;
     };
     public Empty():Discord.MessageEmbed{
@@ -134,7 +134,7 @@ class JishoEmbed{
         if(index!==0){
             msg.react("⬅️");
         }
-        if(pages!==1&&index<pages){
+        if(pages!==1&&index+1<pages){
             msg.react("➡️");
         }
     }
