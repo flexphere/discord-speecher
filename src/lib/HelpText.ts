@@ -22,7 +22,10 @@ export default `
 自身の声の速度を設定（val: 0〜10）
 !s speed <val>
 
-GodFieldの効果音を鳴らす
-!s gf <start|die|hit|damage|reflect|block|money|win|draw>
+自身の声のフィルタを設定（val: __FILTERS__）
+!s speed <val>
+
+GodFieldの効果音を鳴らす（val: start | die | hit | damage | reflect | block | money | win | draw）
+!s gf <val>
 \`\`\`
 `;

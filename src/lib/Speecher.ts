@@ -3,17 +3,18 @@ const textToSpeech = require('@google-cloud/text-to-speech');
 import * as path from 'path';
 import * as db from './DB';
 import Discord, { DiscordAPIError, ClientVoiceManager } from 'discord.js';
-
+import fetch from 'node-fetch';
 import { logger } from './Logger';
 import { Base } from './discordUtil/Base';
 import { Bot, Listen, Command } from './discordUtil/Decorator';
-import HelpText from './HelpText';
+import HelpTextTemplate from './HelpText';
 
 interface VoiceConfig {
     type: string
     rate: number
     pitch: number
     active: number
+    filter: string
 }
 interface SpeechQueue {
     channel: Discord.VoiceChannel
@@ -56,6 +57,10 @@ const GodFieldSounds = [
     'reflect'
 ];
 
+const FilterApis = [
+    {name:'default', url:'http://filter.speecher.info:3000/'}
+]
+
 interface VoiceState {
     channel?: Discord.VoiceChannel
 }
@@ -67,6 +72,8 @@ export class Speecher extends Base {
 
     @Command('!s help')
     async Help(message: Message) {
+        const filterNames = FilterApis.map(f => f.name).join(' | ');
+        const HelpText = HelpTextTemplate.replace('__FILTERS__', filterNames);
         return this.flashMessage(message.channel, HelpText, 20000);
     }
 
@@ -98,7 +105,7 @@ export class Speecher extends Base {
         const voice = await this.getOrCreateVoiceConfig(message.member.id);
         const pitch = <number>voice.pitch + 5;
         const speed = (<number>voice.rate - 1) * 10;
-        this.flashMessage(message.channel, `type:${voice.type}, speed:${speed.toFixed()}, pitch:${pitch.toFixed()}`);
+        this.flashMessage(message.channel, `type:${voice.type}, speed:${speed.toFixed()}, pitch:${pitch.toFixed()}, filter:${voice.filter}`);
     }
 
     @Command('!s activate')
@@ -160,6 +167,18 @@ export class Speecher extends Base {
         this.flashMessage(channel, "Done!");
     }
 
+    @Command('!s filter')
+    async SetFilter({member, channel}: Message, ...args: string[]) {
+        const filter = FilterApis.find(f => args[0] == f.name);
+        if (! filter) {
+            this.flashMessage(channel, "そんなフィルタなかった・・");
+            return;
+        }
+
+        await this.UpdateVoiceFilter(filter, member.id);
+        this.flashMessage(channel, "Done!");
+    }
+
     @Listen('message')
     async Queue(message: Discord.Message, ...args: string[]) {
         try {
@@ -183,8 +202,16 @@ export class Speecher extends Base {
                 return;
             }
 
+            const filter = FilterApis.find(f => f.name == voice.filter);
+            if ( ! filter) {
+                return;
+            }
+
+            const res = await fetch(filter.url, {method:'POST', body:speechMessage.content});
+            const filteredContent = await res.text();
+
             const request = {
-                input: { text: this.filterContent(speechMessage.content) },
+                input: { text: filteredContent },
                 voice: {
                     languageCode: 'ja-JP',
                     name: voice.type
@@ -313,9 +340,10 @@ export class Speecher extends Base {
             rate: (rand(0.8, 2)).toFixed(2), // 0.25〜4  default 1  want 0.8〜2
             pitch: (rand(-5, 5)).toFixed(1), //-20.0 〜 20.0 default 0 want -5〜5
             active: 1,
+            filter: 'default'
         };
         
-        await db.exec('insert into voices (user_id, type, rate, pitch, active) values (?, ?, ?, ?, 0);', [id, voice.type, voice.rate, voice.pitch]);
+        await db.exec('insert into voices (user_id, type, rate, pitch, active, filter) values (?, ?, ?, ?, ?, ?);', [id, voice.type, voice.rate, voice.pitch, voice.active, voice.filter]);
 
         return voice;
     }
@@ -333,6 +361,11 @@ export class Speecher extends Base {
     async UpdateVoiceType(voice_type, member_id) {
         logger.debug(`updating voice config: type=${voice_type} member_id=${member_id}`);
         await db.exec('update voices set type = ? where user_id = ?;', [voice_type, member_id]);
+    }
+
+    async UpdateVoiceFilter(filter, member_id) {
+        logger.debug(`updating voice config: type=${filter.name} member_id=${member_id}`);
+        await db.exec('update voices set filter = ? where user_id = ?;', [filter.name, member_id]);
     }
     
     async ActivateVoiceStatus(member_id) {
