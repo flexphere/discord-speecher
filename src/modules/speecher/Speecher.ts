@@ -33,6 +33,7 @@ interface SpeechMessage {
 interface FilterResponse {
     content: string
     language?: string
+    voice?: string
 }
 
 
@@ -66,7 +67,8 @@ const GodFieldSounds = [
 
 const FilterApis = [
     {name:'default', url:''},
-    {name:'enTranslator', url:'http://filter.speecher.info:3000/en-translator'}
+    // {name:'enTranslator', url:'http://filter.speecher.info:3000/en-translator'}
+    {name:'enTranslator', url:'http://host.docker.internal:3000/en-translate'}
 ]
 
 interface VoiceState {
@@ -215,8 +217,8 @@ export class Speecher extends Base {
             const request = {
                 input: { text: filtered.content },
                 voice: {
-                    languageCode: filtered.language || 'ja-JP',
-                    name: voice.type
+                    languageCode: filtered.language ?? 'ja-JP',
+                    name:  filtered.voice ?? voice.type
                 },
                 audioConfig: {
                     audioEncoding: 'MP3',
@@ -224,6 +226,7 @@ export class Speecher extends Base {
                     pitch: voice.pitch
                 },
             };
+            
             const [response] = await client.synthesizeSpeech(request);
             const buffer = Buffer.from(response.audioContent.buffer);
             const dataurl = `data:‎audio/mpeg;base64,${buffer.toString('base64')}`;
