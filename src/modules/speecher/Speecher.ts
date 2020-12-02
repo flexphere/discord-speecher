@@ -1,12 +1,13 @@
 const textToSpeech = require('@google-cloud/text-to-speech');
 
 import * as path from 'path';
-import * as db from './DB';
+import * as db from '../../lib/DB';
 import Discord, { DiscordAPIError, ClientVoiceManager } from 'discord.js';
 import fetch from 'node-fetch';
-import { logger } from './Logger';
-import { Base } from './discordUtil/Base';
-import { Bot, Listen, Command } from './discordUtil/Decorator';
+import { logger } from '../../lib/Logger';
+import { Base } from '../../lib/discordUtil/Base';
+import { Bot, Listen, Command } from '../../lib/discordUtil/Decorator';
+import { applyFilters, removeCodeBlock, removeQuote, removeURL, emojiToLabel } from "./Filters";
 import HelpTextTemplate from './HelpText';
 
 interface VoiceConfig {
@@ -16,6 +17,7 @@ interface VoiceConfig {
     active: number
     filter: string
 }
+
 interface SpeechQueue {
     channel: Discord.VoiceChannel
     content: string
@@ -26,6 +28,11 @@ interface SpeechMessage {
     textChannel: Discord.TextChannel
     voiceChannel: Discord.VoiceChannel
     content: string
+}
+
+interface FilterResponse {
+    content: string
+    language?: string
 }
 
 
@@ -58,7 +65,8 @@ const GodFieldSounds = [
 ];
 
 const FilterApis = [
-    {name:'default', url:'http://filter.speecher.info:3000/'}
+    {name:'default', url:''},
+    {name:'enTranslator', url:'http://filter.speecher.info:3000/en-translator'}
 ]
 
 interface VoiceState {
@@ -202,18 +210,12 @@ export class Speecher extends Base {
                 return;
             }
 
-            const filter = FilterApis.find(f => f.name == voice.filter);
-            if ( ! filter) {
-                return;
-            }
-
-            const res = await fetch(filter.url, {method:'POST', body:speechMessage.content});
-            const filteredContent = await res.text();
+            const filtered = await this.filterContent(voice.filter, speechMessage.content);
 
             const request = {
-                input: { text: filteredContent },
+                input: { text: filtered.content },
                 voice: {
-                    languageCode: 'ja-JP',
+                    languageCode: filtered.language || 'ja-JP',
                     name: voice.type
                 },
                 audioConfig: {
@@ -313,13 +315,16 @@ export class Speecher extends Base {
         }
     }
 
-    filterContent(text:string): string {
-        text = text.replace(/[ｗ|w]+$/, "笑い");
-        text = text.replace(/https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/, "URL");
-        text = text.replace(/```[^`]+```/g, ''); // remove code blocks
-        text = text.replace(/<([^\d]+)\d+>/g, "$1");
-        text = text.replace(/^>.*/mg, "");
-        return text;
+    async filterContent(filterName:string, text:string): Promise<FilterResponse> {
+        const filter = FilterApis.find(f => f.name == filterName);
+        if (filter && filter.name !== 'default') {
+            const res = await fetch(filter.url, {method:'POST', body:JSON.stringify({content:text})});
+            return await res.json() as FilterResponse;
+        }
+
+        return {
+            content: applyFilters(text, [removeCodeBlock, removeQuote, removeURL, emojiToLabel])
+        }
     }
 
     async flashMessage(channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel, context: string | Discord.MessageEmbed, duration: number = 5000): Promise<Discord.Message> {

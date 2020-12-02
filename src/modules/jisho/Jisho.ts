@@ -1,6 +1,6 @@
 import Discord, { DiscordAPIError, MessageEmbed, MessageReaction, ReactionEmoji } from 'discord.js';
-import { Base } from './discordUtil/Base';
-import { Bot, Command } from './discordUtil/Decorator';
+import { Base } from '../../lib/discordUtil/Base';
+import { Bot, Command } from '../../lib/discordUtil/Decorator';
 import fetch from 'node-fetch';
 
 interface Japanese{
