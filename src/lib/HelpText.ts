@@ -23,7 +23,7 @@ export default `
 !s speed <val>
 
 自身の声のフィルタを設定（val: __FILTERS__）
-!s speed <val>
+!s filter <val>
 
 GodFieldの効果音を鳴らす（val: start | die | hit | damage | reflect | block | money | win | draw）
 !s gf <val>
