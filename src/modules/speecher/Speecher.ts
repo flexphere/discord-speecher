@@ -67,8 +67,7 @@ const GodFieldSounds = [
 
 const FilterApis = [
     {name:'default', url:''},
-    // {name:'enTranslator', url:'http://filter.speecher.info:3000/en-translator'}
-    {name:'enTranslator', url:'http://host.docker.internal:3000/en-translate'}
+    {name:'enTranslator', url:'http://filter.speecher.info:3000/en-translate'}
 ]
 
 interface VoiceState {
