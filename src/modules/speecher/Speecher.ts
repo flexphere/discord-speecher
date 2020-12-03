@@ -30,10 +30,15 @@ interface SpeechMessage {
     content: string
 }
 
+interface FilterResponseVoice {
+    type?: string
+    speed?: number
+    pitch?: number
+}
 interface FilterResponse {
     content: string
     language?: string
-    voice?: string
+    voice?: FilterResponseVoice
 }
 
 
@@ -67,7 +72,8 @@ const GodFieldSounds = [
 
 const FilterApis = [
     {name:'default', url:''},
-    {name:'enTranslator', url:'http://filter.speecher.info:3000/en-translate'}
+    {name:'enTranslator', url:'http://filter.speecher.info:3000/en-translate'},
+    {name:'jaTranslator', url:'http://filter.speecher.info:3000/ja-translate'}
 ]
 
 interface VoiceState {
@@ -211,18 +217,19 @@ export class Speecher extends Base {
                 return;
             }
 
-            const filtered = await this.filterContent(voice.filter, speechMessage.content);
+            const filtered = await this.filterContent(voice, speechMessage.content);
+            console.log(filtered)
 
             const request = {
                 input: { text: filtered.content },
                 voice: {
                     languageCode: filtered.language ?? 'ja-JP',
-                    name:  filtered.voice ?? voice.type
+                    name:  filtered.voice?.type ?? voice.type
                 },
                 audioConfig: {
                     audioEncoding: 'MP3',
-                    speakingRate: voice.rate,
-                    pitch: voice.pitch
+                    speakingRate:  filtered.voice?.speed ?? voice.rate,
+                    pitch:  filtered.voice?.pitch ?? voice.pitch
                 },
             };
             
@@ -317,10 +324,21 @@ export class Speecher extends Base {
         }
     }
 
-    async filterContent(filterName:string, text:string): Promise<FilterResponse> {
-        const filter = FilterApis.find(f => f.name == filterName);
+    async filterContent(voice:VoiceConfig, text:string): Promise<FilterResponse> {
+        const filter = FilterApis.find(f => f.name == voice.filter);
         if (filter && filter.name !== 'default') {
-            const res = await fetch(filter.url, {method:'POST', body:JSON.stringify({content:text})});
+            const res = await fetch(filter.url, {
+                method:'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body:JSON.stringify({
+                    content:text,
+                    voice: {
+                        type: voice.type,
+                        pitch: voice.pitch,
+                        speed: voice.rate
+                    }
+                })
+            });
             return await res.json() as FilterResponse;
         }
 
