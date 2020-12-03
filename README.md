@@ -27,8 +27,8 @@ ContentType: `application/json`
 Body:
 ```
 {
-  "content": string // 入力されたテキスト
-  "voice": {
+  content: string   // 入力されたテキスト
+  voice: {
     type: string    // 発言者の音声名
     pitch: number   // 発言者の声の高さ [-20〜20]
     speed: number   // 発言者の声の速さ [0.25〜20]
@@ -39,9 +39,9 @@ Body:
 ### Response
 ```
 {
-  "content": string  // 変換されたテキスト
-  "language": string (optional) // 言語名
-  "voice": {
+  content: string               // 変換されたテキスト
+  language: string (optional)   // 言語名
+  voice: {
     type : string  (optional)   // 音声名
     pitch: number  (optional)   // 声の高さ [-20〜20]
     speed: number  (optional)   // 声の速さ [0.25〜20]
