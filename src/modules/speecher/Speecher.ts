@@ -325,13 +325,15 @@ export class Speecher extends Base {
     }
 
     async filterContent(voice:VoiceConfig, text:string): Promise<FilterResponse> {
+        const filteredText = applyFilters(text, [removeCodeBlock, removeQuote, removeURL, emojiToLabel]);
+
         const filter = FilterApis.find(f => f.name == voice.filter);
         if (filter && filter.name !== 'default') {
             const res = await fetch(filter.url, {
                 method:'POST', 
                 headers: { 'Content-Type': 'application/json' },
                 body:JSON.stringify({
-                    content:text,
+                    content: filteredText,
                     voice: {
                         type: voice.type,
                         pitch: voice.pitch,
@@ -342,9 +344,7 @@ export class Speecher extends Base {
             return await res.json() as FilterResponse;
         }
 
-        return {
-            content: applyFilters(text, [removeCodeBlock, removeQuote, removeURL, emojiToLabel])
-        }
+        return { content: filteredText };
     }
 
     async flashMessage(channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel, context: string | Discord.MessageEmbed, duration: number = 5000): Promise<Discord.Message> {
