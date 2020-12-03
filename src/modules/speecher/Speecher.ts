@@ -2,83 +2,14 @@ const textToSpeech = require('@google-cloud/text-to-speech');
 
 import * as path from 'path';
 import * as db from '../../lib/DB';
-import Discord, { DiscordAPIError, ClientVoiceManager } from 'discord.js';
+import Discord from 'discord.js';
 import fetch from 'node-fetch';
 import { logger } from '../../lib/Logger';
 import { Base } from '../../lib/discordUtil/Base';
 import { Bot, Listen, Command } from '../../lib/discordUtil/Decorator';
 import { applyFilters, removeCodeBlock, removeQuote, removeURL, emojiToLabel } from "./Filters";
+import { VoiceTypes, GodFieldSounds, FilterApis } from './Consts';
 import HelpTextTemplate from './HelpText';
-
-interface VoiceConfig {
-    type: string
-    rate: number
-    pitch: number
-    active: number
-    filter: string
-}
-
-interface SpeechQueue {
-    channel: Discord.VoiceChannel
-    content: string
-}
-
-interface SpeechMessage {
-    member: Discord.GuildMember
-    textChannel: Discord.TextChannel
-    voiceChannel: Discord.VoiceChannel
-    content: string
-}
-
-interface FilterResponseVoice {
-    type?: string
-    speed?: number
-    pitch?: number
-}
-interface FilterResponse {
-    content: string
-    language?: string
-    voice?: FilterResponseVoice
-}
-
-
-type RequiredAndNotNull<T> = {
-    [P in keyof T]-?: Exclude<T[P], null | undefined>
-}
-
-type RequireAndNotNullSome<T, K extends keyof T> = 
-    RequiredAndNotNull<Pick<T, K>> & Omit<T, K>;
-
-type Message = RequireAndNotNullSome<Discord.Message, 'member' | 'channel'>
-
-const VoiceTypes = [
-    'ja-JP-Standard-A',
-    'ja-JP-Standard-B',
-    'ja-JP-Standard-C',
-    'ja-JP-Standard-D',
-];
-
-const GodFieldSounds = [
-    'start',
-    'die',
-    'hit',
-    'damage',
-    'block',
-    'win',
-    'money',
-    'draw',
-    'reflect'
-];
-
-const FilterApis = [
-    {name:'default', url:''},
-    {name:'enTranslator', url:'http://filter.speecher.info:3000/en-translate'},
-    {name:'jaTranslator', url:'http://filter.speecher.info:3000/ja-translate'}
-]
-
-interface VoiceState {
-    channel?: Discord.VoiceChannel
-}
 
 @Bot()
 export class Speecher extends Base {
