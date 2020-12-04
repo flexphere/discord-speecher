@@ -259,7 +259,7 @@ export class Speecher extends Base {
         const filteredText = applyFilters(text, [removeCodeBlock, removeQuote, removeURL, emojiToLabel]);
 
         const filter = FilterApis.find(f => f.name == voice.filter);
-        if (filter && filter.name !== 'default') {
+        if (filteredText && filter && filter.name !== 'default') {
             const res = await fetch(filter.url, {
                 method:'POST', 
                 headers: { 'Content-Type': 'application/json' },
