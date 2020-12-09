@@ -19,7 +19,8 @@ export const GodFieldSounds = [
 
 export const FilterApis = [
   {name:'default', url:''},
-  {name:'enTranslator', url:'http://filter.speecher.info:3000/en-translate'},
-  {name:'jaTranslator', url:'http://filter.speecher.info:3000/ja-translate'},
-  {name:'idTranslator', url:'http://filter.speecher.info:3000/id-translate'}
+  {name:'ja2en', url:'http://filter.speecher.info:3000/ja2en'},
+  {name:'en2ja', url:'http://filter.speecher.info:3000/en2ja'},
+  {name:'ja2id', url:'http://filter.speecher.info:3000/ja2id'},
+  {name:'id2ja', url:'http://filter.speecher.info:3000/id2ja'},
 ]
