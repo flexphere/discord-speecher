@@ -23,4 +23,6 @@ export const FilterApis = [
   {name:'en2ja', url:'http://filter.speecher.info:3000/en2ja'},
   {name:'ja2id', url:'http://filter.speecher.info:3000/ja2id'},
   {name:'id2ja', url:'http://filter.speecher.info:3000/id2ja'},
+  {name:'ja2fr', url:'http://filter.speecher.info:3000/ja2fr'},
+  {name:'fr2ja', url:'http://filter.speecher.info:3000/fr2ja'},
 ]
