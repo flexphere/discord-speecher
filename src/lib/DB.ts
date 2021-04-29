@@ -13,7 +13,7 @@ export function query(sql, params): Object {
 }
 
 export function exec(sql, params) {
-	return new Promise((resolve, reject) => {
+	return new Promise<void>((resolve, reject) => {
 		db.run(sql, params, (err) => {
 			if (err) reject(err);
 			resolve();
