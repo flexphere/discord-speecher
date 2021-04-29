@@ -14,20 +14,20 @@
         "npm": ">=7"
     },
     "dependencies": {
-        "@discordjs/opus": "^0.3.3",
-        "@google-cloud/text-to-speech": "^3.1.2",
-        "@types/node": "^13.9.5",
-        "@types/node-fetch": "^2.5.7",
-        "@types/ws": "^7.2.2",
+        "@discordjs/opus": "latest",
+        "@google-cloud/text-to-speech": "latest",
+        "@types/node": "latest",
+        "@types/node-fetch": "latest",
+        "@types/ws": "latest",
         "discord.js": "latest",
-        "log4js": "^6.3.0",
-        "node-fetch": "^2.6.1",
-        "promise-mysql": "^4.1.3",
-        "reflect-metadata": "^0.1.13",
-        "sqlite3": "^5.0.0",
-        "ts-node": "^8.8.1",
+        "log4js": "latest",
+        "node-fetch": "latest",
+        "promise-mysql": "latest",
+        "reflect-metadata": "latest",
+        "sqlite3": "latest",
+        "ts-node": "latest",
         "typescript": "latest",
-        "util": "^0.12.2",
-        "utils": "^0.3.1"
+        "util": "latest",
+        "utils": "latest"
     }
 }
