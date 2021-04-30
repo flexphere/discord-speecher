@@ -1,9 +1,9 @@
-FROM node:13.12.0-alpine3.10
+FROM node:current-alpine
 
 WORKDIR /workspace
 
 RUN apk update && apk upgrade
-RUN apk add gcc make g++ ffmpeg python
+RUN apk add gcc make g++ ffmpeg python3
 
 COPY package.json package-lock.json ./
 RUN npm install
