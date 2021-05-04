@@ -7,14 +7,14 @@ interface VoiceConfig {
 }
 
 interface SpeechQueue {
-  channel: Discord.VoiceChannel
+  channel: import("discord.js").VoiceChannel
   content: string
 }
 
 interface SpeechMessage {
-  member: Discord.GuildMember
-  textChannel: Discord.TextChannel
-  voiceChannel: Discord.VoiceChannel
+  member: import("discord.js").GuildMember
+  textChannel: import("discord.js").TextChannel
+  voiceChannel: import("discord.js").VoiceChannel
   content: string
 }
 
@@ -36,4 +36,4 @@ type RequiredAndNotNull<T> = {
 
 type RequireAndNotNullSome<T, K extends keyof T> = RequiredAndNotNull<Pick<T, K>> & Omit<T, K>;
 
-type Message = RequireAndNotNullSome<Discord.Message, 'member' | 'channel'>
+type Message = RequireAndNotNullSome<import("discord.js").Message, 'member' | 'channel'>
