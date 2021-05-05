@@ -10,22 +10,6 @@ import { Bot, Listen, Command } from '../../lib/discordUtil/Decorator';
 import { applyFilters, removeCodeBlock, removeQuote, removeURL, emojiToLabel } from "./Filters";
 import { VoiceTypes, GodFieldSounds, FilterApis } from './Consts';
 import HelpTextTemplate from './HelpText';
-import prism from 'prism-media';
-import {Readable, PassThrough} from 'stream';
-import fs from 'fs';
-import {once} from 'events'
-
-declare module "discord.js" {
-    interface StreamDispatcher {
-        rawWritable: NodeJS.WritableStream
-    }
-}
-
-declare global {
-    interface SpeechQueue {
-        raw: AsyncIterable<Buffer>,
-    }
-}
 
 @Bot()
 export class Speecher extends Base {
@@ -51,18 +35,10 @@ export class Speecher extends Base {
             return;
         }
 
-        const demuxer = new prism.opus.OggDemuxer();
-        const decoder = new prism.opus.Decoder({
-            rate: 48000, channels: 2 ,frameSize: 960
-        });
-
-        const filename = path.resolve('./') + `/sounds/${args[0][0]}.ogg`;
-        fs.createReadStream(filename).pipe(demuxer).pipe(decoder);
-
+        const audiofile = path.resolve('./') + `/sounds/${args[0][0]}.mp3`;
         this.queue.push({
             channel: speechMessage.voiceChannel,
-            content: "",
-            raw: decoder
+            content: audiofile
         });
 
         if ( ! this.playing) {
@@ -182,30 +158,22 @@ export class Speecher extends Base {
                     name:  filtered.voice?.type ?? voice.type
                 },
                 audioConfig: {
-                    audioEncoding: 'OGG_OPUS' as any,
+                    audioEncoding: 'MP3',
                     speakingRate:  filtered.voice?.speed ?? voice.rate,
                     pitch:  filtered.voice?.pitch ?? voice.pitch
                 },
             };
             
             const [response] = await client.synthesizeSpeech(request);
-            
-            const demuxer = new prism.opus.OggDemuxer();
-            const decoder = new prism.opus.Decoder({
-                rate: 48000, channels: 2 ,frameSize: 960
-            });
-            demuxer.end(response.audioContent)
-            demuxer.pipe(decoder);
-
+            const buffer = Buffer.from(response.audioContent.buffer);
+            const dataurl = `data:‎audio/mpeg;base64,${buffer.toString('base64')}`;
             this.queue.push({
                 channel: speechMessage.voiceChannel,
-                content: "",
-                raw: decoder
+                content: dataurl
             });
             logger.debug(`Queue: ${speechMessage.voiceChannel.name} - ${speechMessage.content}`);
 
             if ( ! this.playing) {
-                console.log("call Speak()");
                 this.Speak();
             }
         } catch (e) {
@@ -229,40 +197,24 @@ export class Speecher extends Base {
         }
     }
 
-    static getRawWritable(connection: Discord.VoiceConnection) {
-        if(!connection.dispatcher) {
-            const pass = new PassThrough();
-            const dispatcher = connection.play(pass, {type:"converted", volume:false});
-            dispatcher.on('finish', () => {
-                console.log("dispatcher finished");
-            });
-            dispatcher.rawWritable = pass;
-        }
-        return connection.dispatcher.rawWritable;
-    }
-
     async Speak() {
-        if (this.playing) {
-            return;
-        }
-
         const speech = this.queue.shift();
         if ( ! speech) {
             return;
         }
-        this.playing = true;
 
         const conn = await speech.channel.join();
-        const writable = Speecher.getRawWritable(conn);
-
-        for await (const buff of speech.raw) {
-            if(!writable.write(buff)){
-                await once(writable, 'drain');
-            }
+        if ( ! conn) {
+            return;
         }
 
-        this.playing = false;
-        this.Speak();
+        const dispatcher = conn.play(speech.content);
+        this.playing = true;
+
+        dispatcher.on('finish', () => {
+            this.playing = false;
+            this.Speak();
+        });
     }
 
     async getOrCreateVoiceConfig(id: string): Promise<VoiceConfig> {
