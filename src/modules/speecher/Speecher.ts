@@ -1,6 +1,9 @@
-const textToSpeech = require('@google-cloud/text-to-speech');
+import textToSpeech from '@google-cloud/text-to-speech';
 
 import * as path from 'path';
+import { createReadStream } from 'fs';
+import { Readable } from 'stream';
+
 import * as db from '../../lib/DB';
 import Discord from 'discord.js';
 import fetch from 'node-fetch';
@@ -10,6 +13,7 @@ import { Bot, Listen, Command } from '../../lib/discordUtil/Decorator';
 import { applyFilters, removeCodeBlock, removeQuote, removeURL, emojiToLabel } from "./Filters";
 import { VoiceTypes, GodFieldSounds, FilterApis } from './Consts';
 import HelpTextTemplate from './HelpText';
+import { Mixer } from './Mixer';
 
 @Bot()
 export class Speecher extends Base {
@@ -35,15 +39,9 @@ export class Speecher extends Base {
             return;
         }
 
-        const audiofile = path.resolve('./') + `/sounds/${args[0][0]}.mp3`;
-        this.queue.push({
-            channel: speechMessage.voiceChannel,
-            content: audiofile
-        });
-
-        if ( ! this.playing) {
-            this.Speak();
-        }
+        const filename = path.resolve('./') + `/sounds/${args[0][0]}.ogg`;
+        const connection = await speechMessage.voiceChannel.join();
+        getMixer(connection).ring(createReadStream(filename));
     }
 
     @Command('!s me')
@@ -158,24 +156,16 @@ export class Speecher extends Base {
                     name:  filtered.voice?.type ?? voice.type
                 },
                 audioConfig: {
-                    audioEncoding: 'MP3',
+                    audioEncoding: 'OGG_OPUS' as any,
                     speakingRate:  filtered.voice?.speed ?? voice.rate,
                     pitch:  filtered.voice?.pitch ?? voice.pitch
                 },
             };
-            
-            const [response] = await client.synthesizeSpeech(request);
-            const buffer = Buffer.from(response.audioContent.buffer);
-            const dataurl = `data:‎audio/mpeg;base64,${buffer.toString('base64')}`;
-            this.queue.push({
-                channel: speechMessage.voiceChannel,
-                content: dataurl
-            });
-            logger.debug(`Queue: ${speechMessage.voiceChannel.name} - ${speechMessage.content}`);
 
-            if ( ! this.playing) {
-                this.Speak();
-            }
+            const [response] = await client.synthesizeSpeech(request);
+
+            const connection = await speechMessage.voiceChannel.join();
+            getMixer(connection).speak(response.audioContent as Uint8Array);
         } catch (e) {
             logger.fatal(e);
             message.channel.send('｡ﾟ(ﾟ´Д｀ﾟ)ﾟ｡ごめん。エラーだわ');
@@ -195,26 +185,6 @@ export class Speecher extends Base {
                 conn?.disconnect();
             }
         }
-    }
-
-    async Speak() {
-        const speech = this.queue.shift();
-        if ( ! speech) {
-            return;
-        }
-
-        const conn = await speech.channel.join();
-        if ( ! conn) {
-            return;
-        }
-
-        const dispatcher = conn.play(speech.content);
-        this.playing = true;
-
-        dispatcher.on('finish', () => {
-            this.playing = false;
-            this.Speak();
-        });
     }
 
     async getOrCreateVoiceConfig(id: string): Promise<VoiceConfig> {
@@ -333,4 +303,15 @@ export class Speecher extends Base {
         logger.debug(`deactivating voice: member_id=${member_id}`);
         await db.exec('update voices set active = 0 where user_id = ?;', [member_id]);
     }
+}
+
+const mixers = new WeakMap<Discord.StreamDispatcher, Mixer>();
+
+function getMixer(connection: Discord.VoiceConnection) {
+    if(!connection.dispatcher) {
+        const mixer = new Mixer();
+        const dispatcher = connection.play(Readable.from(mixer),{ volume:false, type:"converted" });
+        mixers.set(dispatcher, mixer);
+    }
+    return mixers.get(connection.dispatcher)!;
 }
