@@ -4,7 +4,7 @@ import { MixerBase, Port } from "./MixerBase";
 
 export class Mixer extends MixerBase<Buffer, [Port<Buffer>, Port<Buffer>]> {
   constructor() {
-    super(20, mix, concatablePort<Buffer>(), takeoverablePort<Buffer>());
+    super(20, mix, queuedPort<Buffer>(), takeoverablePort<Buffer>());
   }
 
   speak(value: Readable | Uint8Array) {
@@ -73,7 +73,7 @@ function takeoverablePort<T>(): Port<T> {
   })();
 
   return {
-    next: nextOrNull(loop),
+    next: nextOrUndefined(loop),
     write: (value) => {
       iterator = value[Symbol.asyncIterator]();
       iterable_done = false;
@@ -85,7 +85,7 @@ function takeoverablePort<T>(): Port<T> {
   };
 }
 
-function concatablePort<T>(): Port<T> {
+function queuedPort<T>(): Port<T> {
   let iterable: AsyncIterable<T> = (async function* () {})();
   let iterable_done = false;
   let queue: AsyncIterable<T>[] = [];
@@ -111,7 +111,7 @@ function concatablePort<T>(): Port<T> {
   })();
 
   return {
-    next: nextOrNull(loop),
+    next: nextOrUndefined(loop),
     write: (value) => {
       queue.push(value);
       iterable_done = false;
@@ -124,7 +124,7 @@ function concatablePort<T>(): Port<T> {
 }
 
 type InfiniteAsyncIterator<T> = AsyncIterator<T>;
-function nextOrNull<T>(source: InfiniteAsyncIterator<T>) {
+function nextOrUndefined<T>(source: InfiniteAsyncIterator<T>) {
   let last = { done: false, value: undefined } as IteratorResult<T | undefined>;
   let fulfilled = true;
   return () => {

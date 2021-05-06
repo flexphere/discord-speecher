@@ -9,6 +9,7 @@ interface OutputPort<T> {
 
 export type Port<T> = InputPort<T> & OutputPort<T>;
 
+type millisecond = number;
 export abstract class MixerBase<
   Out,
   Ports extends Port<unknown>[],
@@ -34,13 +35,13 @@ export abstract class MixerBase<
   private _generator: AsyncIterator<Out>;
   private _inputPorts: Ports;
 
-  constructor(ms: number, mix: (...values: Values) => Out, ...ports: Ports) {
+  constructor(period: millisecond, mix: (...values: Values) => Out, ...ports: Ports) {
     this._inputPorts = ports;
 
     this._generator = (async function* () {
       while (true) {
         await Promise.race(ports.map((x) => x.transferring));
-        await new Promise((f) => setTimeout(f, ms));
+        await new Promise((f) => setTimeout(f, period));
         yield mix(...(ports.map((x) => x.next()) as Values));
       }
     })();
