@@ -1,6 +1,9 @@
-const textToSpeech = require('@google-cloud/text-to-speech');
+import textToSpeech from '@google-cloud/text-to-speech';
 
 import * as path from 'path';
+import { createReadStream } from 'fs';
+import { Readable } from 'stream';
+
 import * as db from '../../lib/DB';
 import Discord from 'discord.js';
 import fetch from 'node-fetch';
@@ -10,22 +13,7 @@ import { Bot, Listen, Command } from '../../lib/discordUtil/Decorator';
 import { applyFilters, removeCodeBlock, removeQuote, removeURL, emojiToLabel } from "./Filters";
 import { VoiceTypes, GodFieldSounds, FilterApis } from './Consts';
 import HelpTextTemplate from './HelpText';
-import prism from 'prism-media';
-import {Readable, PassThrough} from 'stream';
-import fs from 'fs';
-import {once} from 'events'
-
-declare module "discord.js" {
-    interface StreamDispatcher {
-        rawWritable: NodeJS.WritableStream
-    }
-}
-
-declare global {
-    interface SpeechQueue {
-        raw: AsyncIterable<Buffer>,
-    }
-}
+import { Mixer } from './Mixer';
 
 @Bot()
 export class Speecher extends Base {
@@ -51,23 +39,9 @@ export class Speecher extends Base {
             return;
         }
 
-        const demuxer = new prism.opus.OggDemuxer();
-        const decoder = new prism.opus.Decoder({
-            rate: 48000, channels: 2 ,frameSize: 960
-        });
-
         const filename = path.resolve('./') + `/sounds/${args[0][0]}.ogg`;
-        fs.createReadStream(filename).pipe(demuxer).pipe(decoder);
-
-        this.queue.push({
-            channel: speechMessage.voiceChannel,
-            content: "",
-            raw: decoder
-        });
-
-        if ( ! this.playing) {
-            this.Speak();
-        }
+        const connection = await speechMessage.voiceChannel.join();
+        getMixer(connection).ring(createReadStream(filename));
     }
 
     @Command('!s me')
@@ -187,27 +161,11 @@ export class Speecher extends Base {
                     pitch:  filtered.voice?.pitch ?? voice.pitch
                 },
             };
-            
+
             const [response] = await client.synthesizeSpeech(request);
-            
-            const demuxer = new prism.opus.OggDemuxer();
-            const decoder = new prism.opus.Decoder({
-                rate: 48000, channels: 2 ,frameSize: 960
-            });
-            demuxer.end(response.audioContent)
-            demuxer.pipe(decoder);
 
-            this.queue.push({
-                channel: speechMessage.voiceChannel,
-                content: "",
-                raw: decoder
-            });
-            logger.debug(`Queue: ${speechMessage.voiceChannel.name} - ${speechMessage.content}`);
-
-            if ( ! this.playing) {
-                console.log("call Speak()");
-                this.Speak();
-            }
+            const connection = await speechMessage.voiceChannel.join();
+            getMixer(connection).speak(response.audioContent as Uint8Array);
         } catch (e) {
             logger.fatal(e);
             message.channel.send('｡ﾟ(ﾟ´Д｀ﾟ)ﾟ｡ごめん。エラーだわ');
@@ -227,42 +185,6 @@ export class Speecher extends Base {
                 conn?.disconnect();
             }
         }
-    }
-
-    static getRawWritable(connection: Discord.VoiceConnection) {
-        if(!connection.dispatcher) {
-            const pass = new PassThrough();
-            const dispatcher = connection.play(pass, {type:"converted", volume:false});
-            dispatcher.on('finish', () => {
-                console.log("dispatcher finished");
-            });
-            dispatcher.rawWritable = pass;
-        }
-        return connection.dispatcher.rawWritable;
-    }
-
-    async Speak() {
-        if (this.playing) {
-            return;
-        }
-
-        const speech = this.queue.shift();
-        if ( ! speech) {
-            return;
-        }
-        this.playing = true;
-
-        const conn = await speech.channel.join();
-        const writable = Speecher.getRawWritable(conn);
-
-        for await (const buff of speech.raw) {
-            if(!writable.write(buff)){
-                await once(writable, 'drain');
-            }
-        }
-
-        this.playing = false;
-        this.Speak();
     }
 
     async getOrCreateVoiceConfig(id: string): Promise<VoiceConfig> {
@@ -381,4 +303,15 @@ export class Speecher extends Base {
         logger.debug(`deactivating voice: member_id=${member_id}`);
         await db.exec('update voices set active = 0 where user_id = ?;', [member_id]);
     }
+}
+
+const mixers = new WeakMap<Discord.StreamDispatcher, Mixer>();
+
+function getMixer(connection: Discord.VoiceConnection) {
+    if(!connection.dispatcher) {
+        const mixer = new Mixer();
+        const dispatcher = connection.play(Readable.from(mixer),{ volume:false, type:"converted" });
+        mixers.set(dispatcher, mixer);
+    }
+    return mixers.get(connection.dispatcher)!;
 }
