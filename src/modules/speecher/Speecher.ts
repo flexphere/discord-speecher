@@ -190,7 +190,7 @@ export class Speecher extends Base {
         if (afterState.channel && beforeState.selfMute !== afterState.selfMute) {
             const connection = await afterState.channel.join();
             const filepath = path.resolve('./') + '/sounds/';
-            const filename = afterState.selfMute ? 'unmute.ogg' : 'mute.ogg';
+            const filename = afterState.selfMute ? 'mute.ogg' : 'unmute.ogg';
             getMixer(connection).ring(createReadStream(filepath + filename));
         }
     }
