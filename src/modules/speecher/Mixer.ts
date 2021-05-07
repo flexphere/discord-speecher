@@ -7,13 +7,13 @@ export class Mixer extends MixerBase<Buffer, [Port<Buffer>, Port<Buffer>]> {
     super(20, mix, queuedPort<Buffer>(), takeoverablePort<Buffer>());
   }
 
-  speak(value: Readable | Uint8Array) {
-    const raw = decode(value);
+  speak(value: Readable | Uint8Array, volume:number = 1) {
+    const raw = decode(value, volume);
     this.inputPorts[0].write(raw);
   }
 
-  ring(value: Readable | Uint8Array) {
-    const raw = decode(value);
+  ring(value: Readable | Uint8Array, volume:number = 1) {
+    const raw = decode(value, volume);
     this.inputPorts[1].write(raw);
   }
 }
@@ -29,15 +29,16 @@ function mix(value1: Buffer = ZERO, value2: Buffer = ZERO): Buffer {
   return buf;
 }
 
-function decode(value: Readable | Uint8Array) {
+function decode(value: Readable | Uint8Array, volume:number = 1) {
   const demuxer = new prism.opus.OggDemuxer();
   const decoder = new prism.opus.Decoder({
     rate: 48000,
     channels: 2,
     frameSize: 960,
   });
+  const volumeTransformer:any = new prism.VolumeTransformer({ type: 's16le', volume: volume });
 
-  demuxer.pipe(decoder);
+  demuxer.pipe(decoder).pipe(volumeTransformer)
 
   if (value instanceof Readable) {
     value.pipe(demuxer);
@@ -45,7 +46,7 @@ function decode(value: Readable | Uint8Array) {
     demuxer.end(value);
   }
 
-  return decoder;
+  return volumeTransformer;
 }
 
 function takeoverablePort<T>(): Port<T> {
