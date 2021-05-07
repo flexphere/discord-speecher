@@ -32,8 +32,8 @@ function mix(value1: Buffer = ZERO, value2: Buffer = ZERO): Buffer {
 function decode(value: Readable | Uint8Array, volume:number = 1) {
   const demuxer = new prism.opus.OggDemuxer();
   const decoder = new prism.opus.Decoder({rate: 48000,channels: 2,frameSize: 960});
-  const volumeTransformer:any = new prism.VolumeTransformer({type: 's16le', readableObjectMode:true}as any); 
-  
+  const volumeTransformer:any = new prism.VolumeTransformer({type: 's16le', volume, readableObjectMode:true} as any); 
+
   demuxer.pipe(decoder).pipe(volumeTransformer)
 
   if (value instanceof Readable) {
