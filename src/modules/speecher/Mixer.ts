@@ -32,12 +32,9 @@ function mix(value1: Buffer = ZERO, value2: Buffer = ZERO): Buffer {
 function decode(value: Readable | Uint8Array, volume:number = 1) {
   const demuxer = new prism.opus.OggDemuxer();
   const decoder = new prism.opus.Decoder({rate: 48000,channels: 2,frameSize: 960});
-
-  // quick fix for Volumes
-  const qf_encoder = new prism.opus.Encoder({rate: 48000,channels: 2,frameSize: 960});
-  const qf_decoder = new prism.opus.Decoder({rate: 48000,channels: 2,frameSize: 960});
-  const volumeTransformer:any = new prism.VolumeTransformer({ type: 's16le', volume: volume });
-  demuxer.pipe(decoder).pipe(volumeTransformer).pipe(qf_encoder).qf_decoder(qf_decoder)
+  const volumeTransformer:any = new prism.VolumeTransformer({type: 's16le', readableObjectMode:true}as any); 
+  
+  demuxer.pipe(decoder).pipe(volumeTransformer)
 
   if (value instanceof Readable) {
     value.pipe(demuxer);
@@ -45,7 +42,7 @@ function decode(value: Readable | Uint8Array, volume:number = 1) {
     demuxer.end(value);
   }
 
-  return qf_decoder;
+  return volumeTransformer;
 }
 
 function takeoverablePort<T>(): Port<T> {
