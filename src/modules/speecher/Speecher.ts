@@ -185,6 +185,14 @@ export class Speecher extends Base {
                 conn?.disconnect();
             }
         }
+
+        // user mute / unmute
+        if (afterState.channel && beforeState.selfMute !== afterState.selfMute) {
+            const connection = await afterState.channel.join();
+            const filepath = path.resolve('./') + '/sounds/';
+            const filename = afterState.selfMute ? 'unmute.ogg' : 'mute.ogg';
+            getMixer(connection).ring(createReadStream(filepath + filename));
+        }
     }
 
     async getOrCreateVoiceConfig(id: string): Promise<VoiceConfig> {
