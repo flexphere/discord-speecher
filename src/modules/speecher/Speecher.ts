@@ -13,7 +13,7 @@ import { Bot, Listen, Command } from '../../lib/discordUtil/Decorator';
 import { applyFilters, removeCodeBlock, removeQuote, removeURL, emojiToLabel } from "./Filters";
 import { VoiceTypes, GodFieldSounds, FilterApis } from './Consts';
 import HelpTextTemplate from './HelpText';
-import { Mixer } from './Mixer';
+import { speak, ring } from './mixer';
 
 @Bot()
 export class Speecher extends Base {
@@ -41,7 +41,7 @@ export class Speecher extends Base {
 
         const filename = path.resolve('./') + `/sounds/${args[0][0]}.ogg`;
         const connection = await speechMessage.voiceChannel.join();
-        getMixer(connection).ring(createReadStream(filename));
+        ring(connection, createReadStream(filename));
     }
 
     @Command('!s me')
@@ -165,7 +165,7 @@ export class Speecher extends Base {
             const [response] = await client.synthesizeSpeech(request);
 
             const connection = await speechMessage.voiceChannel.join();
-            getMixer(connection).speak(response.audioContent as Uint8Array);
+            speak(connection, response.audioContent as Uint8Array);
         } catch (e) {
             logger.fatal(e);
             message.channel.send('｡ﾟ(ﾟ´Д｀ﾟ)ﾟ｡ごめん。エラーだわ');
@@ -191,7 +191,7 @@ export class Speecher extends Base {
             const connection = await afterState.channel.join();
             const filepath = path.resolve('./') + '/sounds/';
             const filename = afterState.selfDeaf ? 'mute.ogg' : 'unmute.ogg';
-            getMixer(connection).ring(createReadStream(filepath + filename), 0.2);
+            ring(connection, createReadStream(filepath + filename), 0.2);
         }
     }
 
@@ -313,13 +313,3 @@ export class Speecher extends Base {
     }
 }
 
-const mixers = new WeakMap<Discord.StreamDispatcher, Mixer>();
-
-function getMixer(connection: Discord.VoiceConnection) {
-    if(!connection.dispatcher) {
-        const mixer = new Mixer();
-        const dispatcher = connection.play(Readable.from(mixer),{ volume:false, type:"converted" });
-        mixers.set(dispatcher, mixer);
-    }
-    return mixers.get(connection.dispatcher)!;
-}
