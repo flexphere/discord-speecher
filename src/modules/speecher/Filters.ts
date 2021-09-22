@@ -17,5 +17,6 @@ export const removeURL = (message: string) => {
 }
 
 export const emojiToLabel = (message: string) => {
-  return message.replace(/<([^\d]+)\d+>/g, "$1");
+  const emojiRegex = new RegExp('(.*?)(<a|a)*:(.*?):.*','g');
+  return message.match(emojiRegex)?.map(m=>m.split(' ').map(s=>s.replace(emojiRegex,'$1 $3')).join(' ')).join();
 }
