@@ -13,7 +13,7 @@ export default `
 自身の読み上げを無効化
 !s deactivate
 
-自身の声のモデルを設定（val: 0〜3）
+自身の声のモデルを設定（val: 0〜7）
 !s voice <val>
 
 自身の声の高さを設定（val: 0〜10）
