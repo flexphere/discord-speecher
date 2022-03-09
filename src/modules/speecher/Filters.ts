@@ -32,3 +32,11 @@ export const emojiToLabel = (message: string) => {
 export const formatRuby = (message: string) => {
   return message.replace(/\|[^<|]+<([^>]+)>/g, "$1");
 };
+
+export const emptyGifMessage = (message: string) => {
+  const prefix = "http://filter.speecher.info:3000/empty.gif?q=";
+  if (message.startsWith(prefix)) {
+    return message.slice(prefix.length);
+  }
+  return message;
+};
