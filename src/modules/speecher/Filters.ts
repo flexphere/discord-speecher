@@ -24,21 +24,9 @@ export const removeURL = (message: string) => {
 };
 
 export const emojiToLabel = (message: string) => {
-  return (
-    message
-      // .replace(/<a?:([^:]+):\d+>/g, "$1")
-      .replace(/<a?:([^:]+):(\d+)>/g, function (_, name, code) {
-        if (code && code.startsWith("00000")) {
-          return code
-            .slice(3)
-            .match(/.{5}/g)
-            .map((c) => String.fromCharCode(+c))
-            .join("");
-        }
-        return name;
-      })
-      .replace(/<([^\d]+)\d+>/g, "$1")
-  );
+  return message
+    .replace(/<a?:([^:]+):\d+>/g, "$1")
+    .replace(/<([^\d]+)\d+>/g, "$1");
 };
 
 export const formatRuby = (message: string) => {
