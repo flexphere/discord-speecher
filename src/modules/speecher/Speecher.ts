@@ -163,6 +163,7 @@ export class Speecher extends Base {
         return;
       }
 
+      console.log({ original: speechMessage.content });
       const filtered = await this.filterContent(voice, speechMessage.content);
       console.log(filtered);
 
