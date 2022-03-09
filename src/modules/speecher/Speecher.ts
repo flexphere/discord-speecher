@@ -261,8 +261,8 @@ export class Speecher extends Base {
       removeInlineCodeBlock,
       removeQuote,
       removeURL,
-      formatRuby,
       emojiToLabel,
+      formatRuby,
     ]);
 
     const filter = FilterApis.find((f) => f.name == voice.filter);
