@@ -13,9 +13,11 @@ import { Bot, Listen, Command } from "../../lib/discordUtil/Decorator";
 import {
   applyFilters,
   removeCodeBlock,
+  removeInlineCodeBlock,
   removeQuote,
   removeURL,
   emojiToLabel,
+  formatRuby,
 } from "./Filters";
 import { VoiceTypes, GodFieldSounds, FilterApis } from "./Consts";
 import HelpTextTemplate from "./HelpText";
@@ -256,8 +258,10 @@ export class Speecher extends Base {
   ): Promise<FilterResponse> {
     const filteredText = applyFilters(text, [
       removeCodeBlock,
+      removeInlineCodeBlock,
       removeQuote,
       removeURL,
+      formatRuby,
       emojiToLabel,
     ]);
 
