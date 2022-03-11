@@ -34,7 +34,7 @@ export const formatRuby = (message: string) => {
 };
 
 export const emptyGifMessage = (message: string) => {
-  const prefix = "http://filter.speecher.info:3000/empty.gif?q=";
+  const prefix = "https://www.bar38.org/,.png?q=";
   if (message.startsWith(prefix)) {
     return message.slice(prefix.length);
   }
