@@ -18,7 +18,7 @@ import {
   removeURL,
   emojiToLabel,
   formatRuby,
-  emptyGifMessage,
+  hiddenMessage,
 } from "./Filters";
 import { VoiceTypes, GodFieldSounds, FilterApis } from "./Consts";
 import HelpTextTemplate from "./HelpText";
@@ -258,7 +258,7 @@ export class Speecher extends Base {
     text: string
   ): Promise<FilterResponse> {
     const filteredText = applyFilters(text, [
-      emptyGifMessage,
+      hiddenMessage,
       removeCodeBlock,
       removeInlineCodeBlock,
       removeQuote,

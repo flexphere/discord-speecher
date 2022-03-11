@@ -33,7 +33,7 @@ export const formatRuby = (message: string) => {
   return message.replace(/\|[^<|]+<([^>]+)>/g, "$1");
 };
 
-export const emptyGifMessage = (message: string) => {
+export const hiddenMessage = (message: string) => {
   const prefix = "https://www.bar38.org/,.png?q=";
   if (message.startsWith(prefix)) {
     return message.slice(prefix.length);
