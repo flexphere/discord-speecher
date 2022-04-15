@@ -71,7 +71,7 @@ async function AttemptTranslate(from:"en"|"ja",text:string,msg:Discord.Message){
             const prefix = (from=='en') ? 'が言った' : 'said'
             const translationMsg = await msg.channel.send(`${msg.author.toString()} ${prefix}: \r\n${translation.outputs[0].output[0].translation}`);
             translationMsg.react('📣')
-            handleReaction(from,msg,translation.outputs[0].output[0].translation,author as Discord.GuildMember);
+            handleReaction(from,translationMsg,translation.outputs[0].output[0].translation,author as Discord.GuildMember);
 
         }
     }
