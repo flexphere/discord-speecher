@@ -1,8 +1,10 @@
-import Discord from 'discord.js';
+import Discord, { MessageReaction } from 'discord.js';
+import textToSpeech from "@google-cloud/text-to-speech";
 import { Base } from '../../lib/discordUtil/Base';
 import { Bot, Command } from '../../lib/discordUtil/Decorator';
 import fetch from 'node-fetch';
 import { logger } from "../../lib/Logger";
+import { speak } from '../speecher/mixer';
 
 @Bot()
 export class TextTranslator extends Base {
@@ -64,9 +66,13 @@ async function AttemptTranslate(from:"en"|"ja",text:string,msg:Discord.Message){
             logger.error(`[TRANSLATOR] - Translation failed - ${translation.error_msg}`)
         }
         else{
+            const author = msg.member;
             msg.delete();
             const prefix = (from=='en') ? 'が言った' : 'said'
-            msg.channel.send(`${msg.author.toString()} ${prefix}: \r\n${translation.outputs[0].output[0].translation}`)
+            const translationMsg = await msg.channel.send(`${msg.author.toString()} ${prefix}: \r\n${translation.outputs[0].output[0].translation}`);
+            translationMsg.react('📣')
+            handleReaction(from,translationMsg,translation.outputs[0].output[0].translation,author as Discord.GuildMember);
+
         }
     }
 }
@@ -105,7 +111,6 @@ async function Translate(from:"en"|"ja",text:string,cookie:string,token:string){
     return res as ITranResponse;
 
 }
-
 function getCookie(cookiesString:string|null){
     if(!cookiesString) return null
     const rawCookies = cookiesString.split(';');
@@ -115,6 +120,41 @@ function getCookie(cookiesString:string|null){
         cookies[key] = v;
     }
     return cookies.translate_session
+}
+
+function handleReaction(from:"en"|"ja",MSGTranslation:Discord.Message,translation:string,author:Discord.GuildMember){
+    const SpeechFilter = (reaction:MessageReaction,user:Discord.User) => {
+        return reaction.emoji.name=="📣" && !user.bot;
+    };
+    const SpeechReaction = MSGTranslation.createReactionCollector(SpeechFilter, { time:200000 });
+    SpeechReaction.on('collect',async (collected)=>{
+        Pronounce(from=="en" ? 'ja':'en',translation,author);
+    })
+}
+
+async function Pronounce(lang:"en"|"ja",content:string,author:Discord.GuildMember){
+    const request = {
+        input: { text: content },
+        voice: {
+          languageCode: lang=="en" ? 'en-US' : "ja-JP",
+          name: lang=="en" ? 'en-US-Wavenet-G' : 'ja-JP-Wavenet-D',
+        },
+        audioConfig: {
+          audioEncoding: "OGG_OPUS" as any,
+          speakingRate: 0.85,
+          pitch: 0,
+        },
+      };
+      
+      const client = new textToSpeech.TextToSpeechClient();
+      const [response] = await client.synthesizeSpeech(request);
+
+      const voiceChannel = author.voice.channel;
+      if(voiceChannel instanceof Discord.VoiceChannel){
+        const voiceConnection = await voiceChannel.join();
+        speak(voiceConnection, response.audioContent as Uint8Array);
+      }
+      
 }
 interface ITranResponse{
     status:"success"|"failed",
