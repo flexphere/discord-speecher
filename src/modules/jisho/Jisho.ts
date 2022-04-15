@@ -1,7 +1,9 @@
 import Discord, { DiscordAPIError, MessageEmbed, MessageReaction, ReactionEmoji } from 'discord.js';
+import textToSpeech from "@google-cloud/text-to-speech";
 import { Base } from '../../lib/discordUtil/Base';
 import { Bot, Command } from '../../lib/discordUtil/Decorator';
 import fetch from 'node-fetch';
+import { speak } from '../speecher/mixer';
 
 interface Japanese{
     word:string,
@@ -46,21 +48,21 @@ export class Jisho extends Base {
         message.channel.send(embed); //TO DO
     }
 
-    @Command('!j jisho')
+    @Command('!j jisho' || '!jisho')
     async Eigo(message: Discord.Message, ...args: string[]) {
         const word:string = (args.length>1) ? args.join(' ') : args[0];
         const req = await fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(word)}`);
 
         if(req.ok){
-            const res:APIResponse = await req.json();
+            const res = await <Promise<APIResponse>>req.json();
             if(res.data.length){
-                let embed:JishoEmbed = new JishoEmbed(res);
+                let embed:JishoEmbed = new JishoEmbed(res,message);
                 const msg = await message.channel.send(embed.Phrase());
                 embed.handlePaging(msg);
                 HandleDeleteReaction(message,msg,embed);
             }
             else{
-                let embed:JishoEmbed|null = new JishoEmbed(res);
+                let embed:JishoEmbed|null = new JishoEmbed(res,message);
                 const msg = await message.channel.send(embed.Empty());
                 setTimeout(()=>{
                     embed = null;
@@ -91,9 +93,11 @@ class JishoEmbed{
 
     private response:APIResponse;
     private index:number = 0;
+    private message:Discord.Message;
 
-    constructor(response:APIResponse){
+    constructor(response:APIResponse,message:Discord.Message){
         this.response = response;
+        this.message=message;
     }
 
     public page = {
@@ -127,9 +131,16 @@ class JishoEmbed{
         const PreviousPageFilter = (reaction:MessageReaction,user:Discord.User) => {
             return reaction.emoji.name=="⬅️" && !user.bot;
         };
+        const SpeechJPFilter = (reaction:MessageReaction,user:Discord.User) => {
+            return reaction.emoji.name=="🇯🇵" && !user.bot;
+        };
+        const SpeechENFilter = (reaction:MessageReaction,user:Discord.User) => {
+            return reaction.emoji.name=="🇬🇧" && !user.bot;
+        };
         const NextPageReaction = msg.createReactionCollector(nextPageFilter, {time: 200000 });
         const PreviousPageReaction = msg.createReactionCollector(PreviousPageFilter, {time: 200000 });
-        
+        const JPReaction = msg.createReactionCollector(SpeechJPFilter, { time:200000 });
+        const ENReaction = msg.createReactionCollector(SpeechENFilter, { time:200000 });
         NextPageReaction.on('collect',async collected=>{
             this.page.next();
             await msg.edit(this.Phrase());
@@ -140,10 +151,18 @@ class JishoEmbed{
             await msg.edit(this.Phrase());
             this.addReactions(msg,this.index,this.response.data.length);
         });
+        JPReaction.on('collect',async collected=>{
+            await this.Pronounce('ja',this.response.data[this.index].japanese[0].word,msg)
+        });
+        ENReaction.on('collect',async collected=>{
+            await this.Pronounce('ja',this.response.data[this.index].senses[0].parts_of_speech[0],msg)
+        });
 
     }
     public async addReactions(msg:Discord.Message,index:number,pages:number){
         await msg.reactions.removeAll();
+        msg.react('🇬🇧');
+        msg.react('🇯🇵');
         msg.react("❌");
 
         if(index!==0){
@@ -152,5 +171,31 @@ class JishoEmbed{
         if(pages!==1&&index+1<pages){
             msg.react("➡️");
         }
+        
+    }
+
+    public async Pronounce(lang:"en"|"ja",content:string,msg:Discord.Message){
+        const request = {
+            input: { text: content },
+            voice: {
+              languageCode: lang=="en" ? 'en-US' : "ja-JP",
+              name: lang=="en" ? 'en-US-Wavenet-G' : 'ja-JP-Wavenet-D',
+            },
+            audioConfig: {
+              audioEncoding: "OGG_OPUS" as any,
+              speakingRate: 5,
+              pitch: 5,
+            },
+          };
+          
+          const client = new textToSpeech.TextToSpeechClient();
+          const [response] = await client.synthesizeSpeech(request);
+    
+          const voiceChannel = msg.member?.voice.channel;
+          if(voiceChannel instanceof Discord.VoiceChannel){
+            const voiceConnection = await voiceChannel.join();
+            speak(voiceConnection, response.audioContent as Uint8Array);
+          }
+          
     }
 }
