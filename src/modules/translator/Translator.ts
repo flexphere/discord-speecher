@@ -1,9 +1,7 @@
-import Discord, { DiscordAPIError, MessageEmbed, MessageReaction, ReactionEmoji } from 'discord.js';
-import textToSpeech from "@google-cloud/text-to-speech";
+import Discord from 'discord.js';
 import { Base } from '../../lib/discordUtil/Base';
 import { Bot, Command } from '../../lib/discordUtil/Decorator';
 import fetch from 'node-fetch';
-import { speak } from '../speecher/mixer';
 import { logger } from "../../lib/Logger";
 
 @Bot()
