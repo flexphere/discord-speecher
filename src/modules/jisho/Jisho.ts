@@ -1,7 +1,9 @@
 import Discord, { DiscordAPIError, MessageEmbed, MessageReaction, ReactionEmoji } from 'discord.js';
+import textToSpeech from "@google-cloud/text-to-speech";
 import { Base } from '../../lib/discordUtil/Base';
 import { Bot, Command } from '../../lib/discordUtil/Decorator';
 import fetch from 'node-fetch';
+import { speak } from '../speecher/mixer';
 
 interface Japanese{
     word:string,
@@ -47,34 +49,42 @@ export class Jisho extends Base {
     }
 
     @Command('!j jisho')
-    async Eigo(message: Discord.Message, ...args: string[]) {
+    async LongJishoCommand(message: Discord.Message, ...args: string[]) {
         const word:string = (args.length>1) ? args.join(' ') : args[0];
-        const req = await fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(word)}`);
-
-        if(req.ok){
-            const res:APIResponse = await req.json();
-            if(res.data.length){
-                let embed:JishoEmbed = new JishoEmbed(res);
-                const msg = await message.channel.send(embed.Phrase());
-                embed.handlePaging(msg);
-                HandleDeleteReaction(message,msg,embed);
-            }
-            else{
-                let embed:JishoEmbed|null = new JishoEmbed(res);
-                const msg = await message.channel.send(embed.Empty());
-                setTimeout(()=>{
-                    embed = null;
-                    msg.delete();
-                },3000)
-            }
-            
-        }
-        else{
-            message.channel.send("Jisho error");
-        }
+        JishoCommand(message,word)
+    }
+    @Command('!jisho')
+    async ShortJishoCommand(message: Discord.Message, ...args: string[]) {
+        const word:string = (args.length>1) ? args.join(' ') : args[0];
+        JishoCommand(message,word)
     }
 }
+async function JishoCommand(message: Discord.Message, word:string){
+    
+    const req = await fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(word)}`);
 
+    if(req.ok){
+        const res = await <Promise<APIResponse>>req.json();
+        if(res.data.length){
+            let embed:JishoEmbed = new JishoEmbed(res,message);
+            const msg = await message.channel.send(embed.Phrase());
+            embed.handlePaging(msg);
+            HandleDeleteReaction(message,msg,embed);
+        }
+        else{
+            let embed:JishoEmbed|null = new JishoEmbed(res,message);
+            const msg = await message.channel.send(embed.Empty());
+            setTimeout(()=>{
+                embed = null;
+                msg.delete();
+            },3000)
+        }
+        
+    }
+    else{
+        message.channel.send("Jisho error");
+    }
+}
 async function HandleDeleteReaction(OriginalMessage:Discord.Message,BotReply:Discord.Message,Embed:JishoEmbed|null){
     const DeleteEmbedFilter = (reaction:MessageReaction,user:Discord.User) => {
         return reaction.emoji.name=="❌" && !user.bot;
@@ -91,9 +101,11 @@ class JishoEmbed{
 
     private response:APIResponse;
     private index:number = 0;
+    private message:Discord.Message;
 
-    constructor(response:APIResponse){
+    constructor(response:APIResponse,message:Discord.Message){
         this.response = response;
+        this.message=message;
     }
 
     public page = {
@@ -127,9 +139,16 @@ class JishoEmbed{
         const PreviousPageFilter = (reaction:MessageReaction,user:Discord.User) => {
             return reaction.emoji.name=="⬅️" && !user.bot;
         };
+        const SpeechJPFilter = (reaction:MessageReaction,user:Discord.User) => {
+            return reaction.emoji.name=="🇯🇵" && !user.bot;
+        };
+        const SpeechENFilter = (reaction:MessageReaction,user:Discord.User) => {
+            return reaction.emoji.name=="🇬🇧" && !user.bot;
+        };
         const NextPageReaction = msg.createReactionCollector(nextPageFilter, {time: 200000 });
         const PreviousPageReaction = msg.createReactionCollector(PreviousPageFilter, {time: 200000 });
-        
+        const JPReaction = msg.createReactionCollector(SpeechJPFilter, { time:200000 });
+        const ENReaction = msg.createReactionCollector(SpeechENFilter, { time:200000 });
         NextPageReaction.on('collect',async collected=>{
             this.page.next();
             await msg.edit(this.Phrase());
@@ -140,10 +159,18 @@ class JishoEmbed{
             await msg.edit(this.Phrase());
             this.addReactions(msg,this.index,this.response.data.length);
         });
+        JPReaction.on('collect',async collected=>{
+            await this.Pronounce('ja',this.response.data[this.index].japanese[0].word,msg)
+        });
+        ENReaction.on('collect',async collected=>{
+            await this.Pronounce('en',this.response.data[this.index].senses[0].english_definitions[0],msg)
+        });
 
     }
     public async addReactions(msg:Discord.Message,index:number,pages:number){
         await msg.reactions.removeAll();
+        msg.react('🇬🇧');
+        msg.react('🇯🇵');
         msg.react("❌");
 
         if(index!==0){
@@ -152,5 +179,31 @@ class JishoEmbed{
         if(pages!==1&&index+1<pages){
             msg.react("➡️");
         }
+        
+    }
+
+    public async Pronounce(lang:"en"|"ja",content:string,msg:Discord.Message){
+        const request = {
+            input: { text: content },
+            voice: {
+              languageCode: lang=="en" ? 'en-US' : "ja-JP",
+              name: lang=="en" ? 'en-US-Wavenet-G' : 'ja-JP-Wavenet-D',
+            },
+            audioConfig: {
+              audioEncoding: "OGG_OPUS" as any,
+              speakingRate: 0.85,
+              pitch: 0,
+            },
+          };
+          
+          const client = new textToSpeech.TextToSpeechClient();
+          const [response] = await client.synthesizeSpeech(request);
+    
+          const voiceChannel = msg.member?.voice.channel;
+          if(voiceChannel instanceof Discord.VoiceChannel){
+            const voiceConnection = await voiceChannel.join();
+            speak(voiceConnection, response.audioContent as Uint8Array);
+          }
+          
     }
 }
