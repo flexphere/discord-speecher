@@ -48,35 +48,43 @@ export class Jisho extends Base {
         message.channel.send(embed); //TO DO
     }
 
-    @Command('!j jisho' || '!jisho')
-    async Eigo(message: Discord.Message, ...args: string[]) {
+    @Command('!j jisho')
+    async LongJishoCommand(message: Discord.Message, ...args: string[]) {
         const word:string = (args.length>1) ? args.join(' ') : args[0];
-        const req = await fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(word)}`);
-
-        if(req.ok){
-            const res = await <Promise<APIResponse>>req.json();
-            if(res.data.length){
-                let embed:JishoEmbed = new JishoEmbed(res,message);
-                const msg = await message.channel.send(embed.Phrase());
-                embed.handlePaging(msg);
-                HandleDeleteReaction(message,msg,embed);
-            }
-            else{
-                let embed:JishoEmbed|null = new JishoEmbed(res,message);
-                const msg = await message.channel.send(embed.Empty());
-                setTimeout(()=>{
-                    embed = null;
-                    msg.delete();
-                },3000)
-            }
-            
-        }
-        else{
-            message.channel.send("Jisho error");
-        }
+        JishoCommand(message,word)
+    }
+    @Command('!jisho')
+    async ShortJishoCommand(message: Discord.Message, ...args: string[]) {
+        const word:string = (args.length>1) ? args.join(' ') : args[0];
+        JishoCommand(message,word)
     }
 }
+async function JishoCommand(message: Discord.Message, word:string){
+    
+    const req = await fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(word)}`);
 
+    if(req.ok){
+        const res = await <Promise<APIResponse>>req.json();
+        if(res.data.length){
+            let embed:JishoEmbed = new JishoEmbed(res,message);
+            const msg = await message.channel.send(embed.Phrase());
+            embed.handlePaging(msg);
+            HandleDeleteReaction(message,msg,embed);
+        }
+        else{
+            let embed:JishoEmbed|null = new JishoEmbed(res,message);
+            const msg = await message.channel.send(embed.Empty());
+            setTimeout(()=>{
+                embed = null;
+                msg.delete();
+            },3000)
+        }
+        
+    }
+    else{
+        message.channel.send("Jisho error");
+    }
+}
 async function HandleDeleteReaction(OriginalMessage:Discord.Message,BotReply:Discord.Message,Embed:JishoEmbed|null){
     const DeleteEmbedFilter = (reaction:MessageReaction,user:Discord.User) => {
         return reaction.emoji.name=="❌" && !user.bot;
