@@ -110,10 +110,10 @@ function getCookie(cookiesString:string|null){
     if(!cookiesString) return null
     const rawCookies = cookiesString.split(';');
     const cookies:Record<string,string> = {};
-    rawCookies.map(c=>{
-        let [key,v] = c.split('=');
+    for (const rawCookie of rawCookies) {
+        let [key,v] = rawCookie.split('=');
         cookies[key] = v;
-    });
+    }
     return cookies.translate_session
 }
 interface ITranResponse{
