@@ -163,7 +163,7 @@ class JishoEmbed{
             await this.Pronounce('ja',this.response.data[this.index].japanese[0].word,msg)
         });
         ENReaction.on('collect',async collected=>{
-            await this.Pronounce('ja',this.response.data[this.index].senses[0].english_definitions[0],msg)
+            await this.Pronounce('en',this.response.data[this.index].senses[0].english_definitions[0],msg)
         });
 
     }
