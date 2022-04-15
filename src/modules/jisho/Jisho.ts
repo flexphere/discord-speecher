@@ -191,8 +191,8 @@ class JishoEmbed{
             },
             audioConfig: {
               audioEncoding: "OGG_OPUS" as any,
-              speakingRate: 5,
-              pitch: 5,
+              speakingRate: 0.85,
+              pitch: 0,
             },
           };
           
