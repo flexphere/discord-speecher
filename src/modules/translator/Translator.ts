@@ -19,23 +19,41 @@ export class TextTranslator extends Base {
 
     @Command('!t')
     async Translate(message: Discord.Message, args:string[]) {
+        /**
+         * - Checks if the content to translate is from a different message.
+         * - Some MessageIDs have a <number-number> structure rather than just <number>
+         * - This needs to be investigated. Is the <number-number> always > 0?
+         */
         const isMessageID = args.length==1 && Number(args[0])>0;
-        const msgrefContent = (isMessageID) ? (await message.channel.messages.fetch(args[0])).content : message.content.slice(3)
-        const jp = msgrefContent.match(/([一-龯ぁ-んァ-ン])/g);
+        /**
+         * The content to translate.
+         */
+        let content = '';
+        /**
+         * - Only used if isMessageID is true. Refers to the message with ID.
+         * - Necessary to refer to the original author.
+         */
+        let msgRef:Discord.Message|undefined;
+
+        if(isMessageID){
+            msgRef = await message.channel.messages.fetch(args[0])
+            content = msgRef.content
+        }
+        else{
+            content = message.content.slice(3)
+        }
+
+        const jp = content.match(/([一-龯ぁ-んァ-ン])/g);
+        let translateFrom:"en"|"ja" = 'en';
         if(jp){
             //Ratio of Japanese characters in the string to determine
             //translation direction (EN=>JA || JA=>EN)
-            const ratio = jp?.length/msgrefContent.length;
+            const ratio = jp?.length/content.length;
             if(ratio>=0.5){
-                AttemptTranslate('ja', msgrefContent, message)
-            }
-            else{
-                AttemptTranslate('en', msgrefContent, message)
+                translateFrom = 'ja';
             }
         }
-        else{
-            AttemptTranslate('en' ,msgrefContent, message)
-        }
+        AttemptTranslate(translateFrom ,content, message, msgRef,content)
         
     }
 
@@ -49,7 +67,7 @@ async function TranslateHelp(message:Discord.Message){
         message.channel.send(embed); //TO DO
 }
 
-async function AttemptTranslate(from:"en"|"ja",text:string,msg:Discord.Message){
+async function AttemptTranslate(from:"en"|"ja", text:string, msg:Discord.Message, msgRef:Discord.Message|undefined,original:string){
     const {cookie,token} = await getMiraiTokens();
     if(!token || !cookie){
         logger.error(`[TRANSLATOR] - Token:${token} or Cookie ${cookie} is missing....or both?`)
@@ -66,12 +84,21 @@ async function AttemptTranslate(from:"en"|"ja",text:string,msg:Discord.Message){
             logger.error(`[TRANSLATOR] - Translation failed - ${translation.error_msg}`)
         }
         else{
-            const author = msg.member;
+            /**
+             * The person calling the !t command
+             */
+            const caller = msg.member;
+            /**
+             * - The author of the message. 
+             * - If the caller refers to another message. The author of _that_ message. 
+             */
+            const author = (msgRef) ? msgRef.author : msg.author;
+            //Delete the caller message
             msg.delete();
             const prefix = (from=='en') ? 'が言った' : 'said'
-            const translationMsg = await msg.channel.send(`${msg.author.toString()} ${prefix}: \r\n${translation.outputs[0].output[0].translation}`);
+            const translationMsg = await msg.channel.send(`${original}\r\n\r\n${author.toString()} ${prefix}: \r\n${translation.outputs[0].output[0].translation}`);
             translationMsg.react('📣')
-            handleReaction(from,translationMsg,translation.outputs[0].output[0].translation,author as Discord.GuildMember);
+            handleReaction(from,translationMsg,translation.outputs[0].output[0].translation,caller as Discord.GuildMember);
 
         }
     }
@@ -86,7 +113,6 @@ async function getMiraiTokens(){
     return {cookie:cookie,token:token};
 }
 async function Translate(from:"en"|"ja",text:string,cookie:string,token:string){
-    console.log(`Fetching translation with token`,token,'and cookie',cookie)
     const req = await fetch('https://trial.miraitranslate.com/trial/api/translate.php',{
         method:'POST',
         headers:{
