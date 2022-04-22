@@ -53,7 +53,7 @@ export class TextTranslator extends Base {
                 translateFrom = 'ja';
             }
         }
-        AttemptTranslate(translateFrom ,content, message, msgRef)
+        AttemptTranslate(translateFrom ,content, message, msgRef,content)
         
     }
 
@@ -67,7 +67,7 @@ async function TranslateHelp(message:Discord.Message){
         message.channel.send(embed); //TO DO
 }
 
-async function AttemptTranslate(from:"en"|"ja", text:string, msg:Discord.Message, msgRef:Discord.Message|undefined){
+async function AttemptTranslate(from:"en"|"ja", text:string, msg:Discord.Message, msgRef:Discord.Message|undefined,original:string){
     const {cookie,token} = await getMiraiTokens();
     if(!token || !cookie){
         logger.error(`[TRANSLATOR] - Token:${token} or Cookie ${cookie} is missing....or both?`)
@@ -96,7 +96,7 @@ async function AttemptTranslate(from:"en"|"ja", text:string, msg:Discord.Message
             //Delete the caller message
             msg.delete();
             const prefix = (from=='en') ? 'が言った' : 'said'
-            const translationMsg = await msg.channel.send(`${author.toString()} ${prefix}: \r\n${translation.outputs[0].output[0].translation}`);
+            const translationMsg = await msg.channel.send(`${original}\r\n\r\n${author.toString()} ${prefix}: \r\n${translation.outputs[0].output[0].translation}`);
             translationMsg.react('📣')
             handleReaction(from,translationMsg,translation.outputs[0].output[0].translation,caller as Discord.GuildMember);
 
@@ -113,7 +113,6 @@ async function getMiraiTokens(){
     return {cookie:cookie,token:token};
 }
 async function Translate(from:"en"|"ja",text:string,cookie:string,token:string){
-    console.log(`Fetching translation with token`,token,'and cookie',cookie)
     const req = await fetch('https://trial.miraitranslate.com/trial/api/translate.php',{
         method:'POST',
         headers:{
