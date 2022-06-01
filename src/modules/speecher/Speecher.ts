@@ -5,7 +5,7 @@ import { createReadStream } from "fs";
 import { Readable } from "stream";
 
 import * as db from "../../lib/DB";
-import Discord from "discord.js";
+import Discord, { TextChannel } from "discord.js";
 import fetch from "node-fetch";
 import { logger } from "../../lib/Logger";
 import { Base } from "../../lib/discordUtil/Base";
@@ -33,7 +33,7 @@ export class Speecher extends Base {
   async Help(message: Message) {
     const filterNames = FilterApis.map((f) => f.name).join(" | ");
     const HelpText = HelpTextTemplate.replace("__FILTERS__", filterNames);
-    return this.flashMessage(message.channel, HelpText, 20000);
+    return this.flashMessage(message.channel as TextChannel, HelpText, 20000);
   }
 
   @Command("!s gf")
@@ -59,7 +59,7 @@ export class Speecher extends Base {
     const pitch = <number>voice.pitch + 5;
     const speed = (<number>voice.rate - 1) * 10;
     this.flashMessage(
-      message.channel,
+      message.channel as TextChannel,
       `type:${
         voice.type
       }, speed:${speed.toFixed()}, pitch:${pitch.toFixed()}, filter:${
@@ -71,13 +71,13 @@ export class Speecher extends Base {
   @Command("!s activate")
   async Activate({ member, channel }: Message, ...args: string[]) {
     await this.ActivateVoiceStatus(member.id);
-    this.flashMessage(channel, "Done!");
+    this.flashMessage(channel as TextChannel, "Done!");
   }
 
   @Command("!s deactivate")
   async Deactivate({ member, channel }: Message, ...args: string[]) {
     await this.DeactivateVoiceStatus(member.id);
-    this.flashMessage(channel, "Done!");
+    this.flashMessage(channel as TextChannel, "Done!");
   }
 
   @Command("!s reboot")
@@ -97,48 +97,48 @@ export class Speecher extends Base {
   async SetVoice({ member, channel }: Message, ...args: string[]) {
     const voice = Number(args[0]);
     if (isNaN(voice) || voice < 0 || voice > 7) {
-      this.flashMessage(channel, "0〜7の数字で指定してくれぃ");
+      this.flashMessage(channel as TextChannel, "0〜7の数字で指定してくれぃ");
       return;
     }
 
     this.UpdateVoiceType(VoiceTypes[voice], member.id);
-    this.flashMessage(channel, "Done!");
+    this.flashMessage(channel as TextChannel, "Done!");
   }
 
   @Command("!s pitch")
   async SetPitch({ member, channel }: Message, ...args: string[]) {
     const pitch = Number(args[0]);
     if (isNaN(pitch) || pitch < 0 || pitch > 10) {
-      this.flashMessage(channel, "0〜10の数字で指定してくれぃ");
+      this.flashMessage(channel as TextChannel, "0〜10の数字で指定してくれぃ");
       return;
     }
 
     await this.UpdateVoicePitch(pitch - 5, member.id);
-    this.flashMessage(channel, "Done!");
+    this.flashMessage(channel as TextChannel, "Done!");
   }
 
   @Command("!s speed")
   async SetSpeed({ member, channel }: Message, ...args: string[]) {
     const speed = Number(args[0]);
     if (isNaN(speed) || speed < 0 || speed > 10) {
-      this.flashMessage(channel, "0〜10の数字で指定してくれぃ");
+      this.flashMessage(channel as TextChannel, "0〜10の数字で指定してくれぃ");
       return;
     }
 
     await this.UpdateVoiceSpeed(speed ? speed / 10 + 1 : 0, member.id);
-    this.flashMessage(channel, "Done!");
+    this.flashMessage(channel as TextChannel, "Done!");
   }
 
   @Command("!s filter")
   async SetFilter({ member, channel }: Message, ...args: string[]) {
     const filter = FilterApis.find((f) => args[0] == f.name);
     if (!filter) {
-      this.flashMessage(channel, "そんなフィルタなかった・・");
+      this.flashMessage(channel as TextChannel, "そんなフィルタなかった・・");
       return;
     }
 
     await this.UpdateVoiceFilter(filter, member.id);
-    this.flashMessage(channel, "Done!");
+    this.flashMessage(channel as TextChannel, "Done!");
   }
 
   @Listen("message")
@@ -196,11 +196,11 @@ export class Speecher extends Base {
     const afterState: Discord.VoiceState = arg[1];
 
     // user left the channel
-    if (beforeState.channelID && !afterState.channelID) {
+    if (beforeState.channelId && !afterState.channelId) {
       const memberCount = <number>beforeState.channel?.members?.size;
       if (memberCount < 2) {
         const conn = this.client.voice?.connections.find(
-          (v) => v.channel.id === beforeState.channelID
+          (v) => v.channel.id === beforeState.channelId
         );
         conn?.disconnect();
       }
@@ -292,8 +292,11 @@ export class Speecher extends Base {
     context: string | Discord.MessageEmbed,
     duration: number = 5000
   ): Promise<Discord.Message> {
-    const message = await channel.send(context);
-    message.delete({ timeout: duration });
+    const options = (context instanceof Discord.MessageEmbed) ? {embeds:[context]} : context;
+    const message = await channel.send(options);
+    setTimeout(()=>{
+      message.delete();
+    },duration)
     return message;
   }
 

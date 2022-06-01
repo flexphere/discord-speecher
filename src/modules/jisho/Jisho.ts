@@ -45,7 +45,7 @@ export class Jisho extends Base {
         .addField('​使用方法 / How to Use','`!j jisho [言葉]`',true)
         .addField('​備考', `​これは翻訳システムではありません。​辞書です。​\r\n文を翻訳しないでください。`,false)
         .addField('Notes',`This is not a translation system. It's a dictionnary.\r\nDon't try to translate sentences.`,false);
-        message.channel.send(embed); //TO DO
+        message.channel.send({embeds:[embed]}); //TO DO
     }
 
     @Command('!j jisho')
@@ -67,13 +67,13 @@ async function JishoCommand(message: Discord.Message, word:string){
         const res = await <Promise<APIResponse>>req.json();
         if(res.data.length){
             let embed:JishoEmbed = new JishoEmbed(res,message);
-            const msg = await message.channel.send(embed.Phrase());
+            const msg = await message.channel.send({embeds:[embed.Phrase()]});
             embed.handlePaging(msg);
             HandleDeleteReaction(message,msg,embed);
         }
         else{
             let embed:JishoEmbed|null = new JishoEmbed(res,message);
-            const msg = await message.channel.send(embed.Empty());
+            const msg = await message.channel.send({embeds:[embed.Empty()]});
             setTimeout(()=>{
                 embed = null;
                 msg.delete();
@@ -89,7 +89,7 @@ async function HandleDeleteReaction(OriginalMessage:Discord.Message,BotReply:Dis
     const DeleteEmbedFilter = (reaction:MessageReaction,user:Discord.User) => {
         return reaction.emoji.name=="❌" && !user.bot;
     };
-    const DeletePageReaction = BotReply.createReactionCollector(DeleteEmbedFilter, {time: 200000 });
+    const DeletePageReaction = BotReply.createReactionCollector({filter:DeleteEmbedFilter,time: 200000 });
     DeletePageReaction.on('collect',async collected=>{
         await BotReply.delete(); //Bot Embed
         await OriginalMessage.delete(); //User Command
@@ -145,18 +145,18 @@ class JishoEmbed{
         const SpeechENFilter = (reaction:MessageReaction,user:Discord.User) => {
             return reaction.emoji.name=="🇬🇧" && !user.bot;
         };
-        const NextPageReaction = msg.createReactionCollector(nextPageFilter, {time: 200000 });
-        const PreviousPageReaction = msg.createReactionCollector(PreviousPageFilter, {time: 200000 });
-        const JPReaction = msg.createReactionCollector(SpeechJPFilter, { time:200000 });
-        const ENReaction = msg.createReactionCollector(SpeechENFilter, { time:200000 });
+        const NextPageReaction = msg.createReactionCollector({filter:nextPageFilter,time: 200000 });
+        const PreviousPageReaction = msg.createReactionCollector({filter:PreviousPageFilter,time: 200000 });
+        const JPReaction = msg.createReactionCollector({ filter:SpeechJPFilter,time:200000 });
+        const ENReaction = msg.createReactionCollector({ filter: SpeechENFilter,time:200000 });
         NextPageReaction.on('collect',async collected=>{
             this.page.next();
-            await msg.edit(this.Phrase());
+            await msg.edit({embeds:[this.Phrase()]});
             this.addReactions(msg,this.index,this.response.data.length);
         });
         PreviousPageReaction.on('collect',async collected=>{
             this.page.previous();
-            await msg.edit(this.Phrase());
+            await msg.edit({embeds:[this.Phrase()]});
             this.addReactions(msg,this.index,this.response.data.length);
         });
         JPReaction.on('collect',async collected=>{
@@ -201,8 +201,8 @@ class JishoEmbed{
     
           const voiceChannel = msg.member?.voice.channel;
           if(voiceChannel instanceof Discord.VoiceChannel){
-            const voiceConnection = await voiceChannel.join();
-            speak(voiceConnection, response.audioContent as Uint8Array);
+            // const voiceConnection = await voiceChannel.join();
+            // speak(voiceConnection, response.audioContent as Uint8Array);
           }
           
     }

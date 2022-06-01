@@ -1,4 +1,5 @@
 import Discord, { MessageReaction } from 'discord.js';
+import DiscordVoice, { DiscordGatewayAdapterCreator } from '@discordjs/voice';
 import textToSpeech from "@google-cloud/text-to-speech";
 import { Base } from '../../lib/discordUtil/Base';
 import { Bot, Command } from '../../lib/discordUtil/Decorator';
@@ -64,7 +65,7 @@ async function TranslateHelp(message:Discord.Message){
         .setColor('#4ab7ff')
         .setTitle('​Help')
         .addField('​使用方法 / How to Use','`React with/リアクションの絵文字 :flag_jp: | :flag_gb:`',true)
-        message.channel.send(embed); //TO DO
+        message.channel.send({embeds:[embed]}); //TO DO
 }
 
 async function AttemptTranslate(from:"en"|"ja", text:string, msg:Discord.Message, msgRef:Discord.Message|undefined,original:string){
@@ -75,7 +76,7 @@ async function AttemptTranslate(from:"en"|"ja", text:string, msg:Discord.Message
         .setColor('#ff2448')
         .setTitle('Error | エラー')
         .setDescription('Cannot get tokens...')
-        msg.channel.send(embed); //TO DO
+        msg.channel.send({embeds:[embed]}); //TO DO
         return
     }
     else{
@@ -152,7 +153,7 @@ function handleReaction(from:"en"|"ja",MSGTranslation:Discord.Message,translatio
     const SpeechFilter = (reaction:MessageReaction,user:Discord.User) => {
         return reaction.emoji.name=="📣" && !user.bot;
     };
-    const SpeechReaction = MSGTranslation.createReactionCollector(SpeechFilter, { time:200000 });
+    const SpeechReaction = MSGTranslation.createReactionCollector({ filter:SpeechFilter, time:200000 });
     SpeechReaction.on('collect',async (collected)=>{
         Pronounce(from=="en" ? 'ja':'en',translation,author);
     })
@@ -177,8 +178,12 @@ async function Pronounce(lang:"en"|"ja",content:string,author:Discord.GuildMembe
 
       const voiceChannel = author.voice.channel;
       if(voiceChannel instanceof Discord.VoiceChannel){
-        const voiceConnection = await voiceChannel.join();
-        speak(voiceConnection, response.audioContent as Uint8Array);
+        let adapter = voiceChannel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator;
+        const connection = DiscordVoice.joinVoiceChannel({channelId:voiceChannel.id,guildId:voiceChannel.guildId,adapterCreator:adapter})
+        const player = DiscordVoice.createAudioPlayer();
+        const voice = response.audioContent as string;
+        const resource = DiscordVoice.createAudioResource(voice)
+        player.play(resource);
       }
       
 }

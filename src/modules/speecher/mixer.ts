@@ -1,4 +1,4 @@
-import type { VoiceConnection } from "discord.js";
+import {VoiceConnection} from '@discordjs/voice';
 import { Readable, pipeline } from "stream";
 import { once } from "events";
 import { BufferedPort } from "./mixer/BufferedPort";
