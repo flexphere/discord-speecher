@@ -1,4 +1,9 @@
-import type { VoiceConnection } from "discord.js";
+import {
+  VoiceConnection,
+  createAudioPlayer,
+  createAudioResource,
+  StreamType,
+} from "@discordjs/voice";
 import { Readable, pipeline } from "stream";
 import { once } from "events";
 import { BufferedPort } from "./mixer/BufferedPort";
@@ -44,8 +49,13 @@ function getMixer(connection: VoiceConnection) {
   let mixer = mixers.get(connection);
   if (!mixer) {
     const play = (src: Readable) => {
-      const dispatcher = connection.play(src, { volume: false, type: "opus" });
-      return once(dispatcher, "finish") as unknown as Promise<void>;
+      //const dispatcher = connection.play(src, { volume: false, type: "opus" });
+
+      const resource = createAudioResource(src, { inputType: StreamType.Opus });
+      const player = createAudioPlayer();
+      player.play(resource);
+      connection.subscribe(player);
+      return once(src, "finish") as unknown as Promise<void>;
     };
 
     mixer = createMixer(play);

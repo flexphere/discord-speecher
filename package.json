@@ -1,4 +1,5 @@
 {
+    "type": "module",
     "name": "discord-speecher",
     "version": "1.0.0",
     "description": "",
@@ -15,6 +16,7 @@
     },
     "dependencies": {
         "@discordjs/opus": "latest",
+        "@discordjs/voice": "^0.16.0",
         "@google-cloud/text-to-speech": "latest",
         "@types/node": "latest",
         "@types/node-fetch": "latest",
@@ -27,6 +29,7 @@
         "reflect-metadata": "latest",
         "sqlite3": "latest",
         "ts-node": "latest",
+        "tweetnacl": "^1.0.3",
         "typescript": "latest",
         "util": "latest",
         "utils": "latest"

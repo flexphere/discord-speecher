@@ -6,6 +6,7 @@ import { Readable } from "stream";
 
 import * as db from "../../lib/DB";
 import Discord from "discord.js";
+import { joinVoiceChannel, getVoiceConnection } from "@discordjs/voice";
 import fetch from "node-fetch";
 import { logger } from "../../lib/Logger";
 import { Base } from "../../lib/discordUtil/Base";
@@ -49,7 +50,11 @@ export class Speecher extends Base {
     }
 
     const filename = path.resolve("./") + `/sounds/${args[0][0]}.ogg`;
-    const connection = await speechMessage.voiceChannel.join();
+    const connection = joinVoiceChannel({
+      channelId: speechMessage.voiceChannel.id,
+      guildId: speechMessage.voiceChannel.guildId,
+      adapterCreator: speechMessage.voiceChannel.guild.voiceAdapterCreator,
+    });
     ring(connection, createReadStream(filename));
   }
 
@@ -87,9 +92,7 @@ export class Speecher extends Base {
 
   @Command("!s leave")
   async Leave(message: Message) {
-    const conn = this.client.voice?.connections.find(
-      (v) => v.channel.id === message.member.voice.channel?.id
-    );
+    const conn = getVoiceConnection(message.guildId!);
     conn?.disconnect();
   }
 
@@ -141,7 +144,7 @@ export class Speecher extends Base {
     this.flashMessage(channel, "Done!");
   }
 
-  @Listen("message")
+  @Listen("messageCreate")
   async Queue(message: Discord.Message, ...args: string[]) {
     try {
       const speechMessage = this.isSpeechMessage(message);
@@ -182,7 +185,11 @@ export class Speecher extends Base {
 
       const [response] = await client.synthesizeSpeech(request);
 
-      const connection = await speechMessage.voiceChannel.join();
+      const connection = joinVoiceChannel({
+        channelId: speechMessage.voiceChannel.id,
+        guildId: speechMessage.voiceChannel.guildId,
+        adapterCreator: speechMessage.voiceChannel.guild.voiceAdapterCreator,
+      });
       speak(connection, response.audioContent as Uint8Array);
     } catch (e) {
       logger.fatal(e);
@@ -196,19 +203,21 @@ export class Speecher extends Base {
     const afterState: Discord.VoiceState = arg[1];
 
     // user left the channel
-    if (beforeState.channelID && !afterState.channelID) {
+    if (beforeState.channelId && !afterState.channelId) {
       const memberCount = <number>beforeState.channel?.members?.size;
       if (memberCount < 2) {
-        const conn = this.client.voice?.connections.find(
-          (v) => v.channel.id === beforeState.channelID
-        );
+        const conn = getVoiceConnection(beforeState.guild.id);
         conn?.disconnect();
       }
     }
 
     // user mute / unmute
     if (afterState.channel && beforeState.selfDeaf !== afterState.selfDeaf) {
-      const connection = await afterState.channel.join();
+      const connection = joinVoiceChannel({
+        channelId: afterState.channel.id,
+        guildId: afterState.channel.guildId,
+        adapterCreator: afterState.channel.guild.voiceAdapterCreator,
+      });
       const filepath = path.resolve("./") + "/sounds/";
       const filename = afterState.selfDeaf ? "mute.ogg" : "unmute.ogg";
       ring(connection, createReadStream(filepath + filename), 0.2);
@@ -288,12 +297,18 @@ export class Speecher extends Base {
   }
 
   async flashMessage(
-    channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel,
-    context: string | Discord.MessageEmbed,
+    channel: Discord.TextBasedChannel,
+    context: string | Discord.EmbedBuilder,
     duration: number = 5000
   ): Promise<Discord.Message> {
-    const message = await channel.send(context);
-    message.delete({ timeout: duration });
+    let message;
+    if (typeof context == "string") {
+      message = await channel.send(context);
+    } else {
+      message = await channel.send({ embeds: [context] });
+    }
+
+    setTimeout(() => message.delete(), duration);
     return message;
   }
 
