@@ -6,9 +6,9 @@ import {
 } from "@discordjs/voice";
 import { Readable, pipeline } from "stream";
 import { once } from "events";
-import { BufferedPort } from "./mixer/BufferedPort";
-import { TakeoverablePort } from "./mixer/TakeoverablePort";
-import { autoPlay } from "./mixer/autoPlay";
+import { BufferedPort } from "./mixer/BufferedPort.js";
+import { TakeoverablePort } from "./mixer/TakeoverablePort.js";
+import { autoPlay } from "./mixer/autoPlay.js";
 
 export function speak(
   connection: VoiceConnection,

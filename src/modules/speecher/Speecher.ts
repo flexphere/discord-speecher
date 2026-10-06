@@ -4,13 +4,17 @@ import * as path from "path";
 import { createReadStream } from "fs";
 import { Readable } from "stream";
 
-import * as db from "../../lib/DB";
+import * as db from "../../lib/DB.js";
 import Discord from "discord.js";
-import { joinVoiceChannel, getVoiceConnection } from "@discordjs/voice";
+import {
+  joinVoiceChannel,
+  getVoiceConnection,
+  DiscordGatewayAdapterCreator,
+} from "@discordjs/voice";
 import fetch from "node-fetch";
-import { logger } from "../../lib/Logger";
-import { Base } from "../../lib/discordUtil/Base";
-import { Bot, Listen, Command } from "../../lib/discordUtil/Decorator";
+import { logger } from "../../lib/Logger.js";
+import { Base } from "../../lib/discordUtil/Base.js";
+import { Bot, Listen, Command } from "../../lib/discordUtil/Decorator.js";
 import {
   applyFilters,
   removeCodeBlock,
@@ -20,10 +24,10 @@ import {
   emojiToLabel,
   formatRuby,
   hiddenMessage,
-} from "./Filters";
-import { VoiceTypes, GodFieldSounds, FilterApis } from "./Consts";
-import HelpTextTemplate from "./HelpText";
-import { speak, ring } from "./mixer";
+} from "./Filters.js";
+import { VoiceTypes, GodFieldSounds, FilterApis } from "./Consts.js";
+import HelpTextTemplate from "./HelpText.js";
+import { speak, ring } from "./mixer.js";
 
 @Bot()
 export class Speecher extends Base {
@@ -53,7 +57,7 @@ export class Speecher extends Base {
     const connection = joinVoiceChannel({
       channelId: speechMessage.voiceChannel.id,
       guildId: speechMessage.voiceChannel.guildId,
-      adapterCreator: speechMessage.voiceChannel.guild.voiceAdapterCreator,
+      adapterCreator: speechMessage.voiceChannel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
     });
     ring(connection, createReadStream(filename));
   }
@@ -188,7 +192,7 @@ export class Speecher extends Base {
       const connection = joinVoiceChannel({
         channelId: speechMessage.voiceChannel.id,
         guildId: speechMessage.voiceChannel.guildId,
-        adapterCreator: speechMessage.voiceChannel.guild.voiceAdapterCreator,
+        adapterCreator: speechMessage.voiceChannel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
       });
       speak(connection, response.audioContent as Uint8Array);
     } catch (e) {
@@ -216,7 +220,7 @@ export class Speecher extends Base {
       const connection = joinVoiceChannel({
         channelId: afterState.channel.id,
         guildId: afterState.channel.guildId,
-        adapterCreator: afterState.channel.guild.voiceAdapterCreator,
+        adapterCreator: afterState.channel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
       });
       const filepath = path.resolve("./") + "/sounds/";
       const filename = afterState.selfDeaf ? "mute.ogg" : "unmute.ogg";

@@ -1,9 +1,9 @@
 import { Client, GatewayIntentBits } from "discord.js";
-import { Config } from "./lib/Config";
-import { Control } from "./lib/discordUtil/Control";
-import { Speecher } from "./modules/speecher/Speecher";
-import { Jisho } from "./modules/jisho/Jisho";
-import { TextTranslator } from "./modules/translator/Translator";
+import { Config } from "./lib/Config.js";
+import { Control } from "./lib/discordUtil/Control.js";
+import { Speecher } from "./modules/speecher/Speecher.js";
+import { Jisho } from "./modules/jisho/Jisho.js";
+import { TextTranslator } from "./modules/translator/Translator.js";
 
 const intents = [
   GatewayIntentBits.Guilds,

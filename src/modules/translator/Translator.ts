@@ -1,11 +1,11 @@
 import Discord, { MessageReaction } from "discord.js";
-import { joinVoiceChannel } from "@discordjs/voice";
+import { joinVoiceChannel, DiscordGatewayAdapterCreator } from "@discordjs/voice";
 import textToSpeech from "@google-cloud/text-to-speech";
-import { Base } from "../../lib/discordUtil/Base";
-import { Bot, Command } from "../../lib/discordUtil/Decorator";
+import { Base } from "../../lib/discordUtil/Base.js";
+import { Bot, Command } from "../../lib/discordUtil/Decorator.js";
 import fetch from "node-fetch";
-import { logger } from "../../lib/Logger";
-import { speak } from "../speecher/mixer";
+import { logger } from "../../lib/Logger.js";
+import { speak } from "../speecher/mixer.js";
 
 @Bot()
 export class TextTranslator extends Base {
@@ -217,7 +217,7 @@ async function Pronounce(
     const voiceConnection = joinVoiceChannel({
       channelId: voiceChannel.id,
       guildId: voiceChannel.guildId,
-      adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+      adapterCreator: voiceChannel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
     });
     speak(voiceConnection, response.audioContent as Uint8Array);
   }
