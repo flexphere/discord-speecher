@@ -1,4 +1,4 @@
-import { Config } from "./Config";
+import { Config } from "./Config.js";
 import sqlite3 from "sqlite3";
 
 const db = new sqlite3.Database(Config.db);

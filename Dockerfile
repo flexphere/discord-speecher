@@ -1,14 +1,11 @@
-FROM node:18-bullseye-slim as builder
-
-RUN apt update && apt upgrade
-RUN apt install -y   gcc make g++ python3
+FROM node:22-bullseye-slim as builder
 
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
 
 
-FROM node:18-bullseye-slim
+FROM node:22-bullseye-slim
  
 
 WORKDIR /workspace

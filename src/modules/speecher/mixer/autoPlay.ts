@@ -1,6 +1,6 @@
-import { playAndPause, Play } from "./playAndPause";
+import { playAndPause, Play } from "./playAndPause.js";
 
-export type { Play } from "./playAndPause";
+export type { Play } from "./playAndPause.js";
 
 export interface Port<T, Nosignal> extends AsyncIterable<T | Nosignal> {
   nosignal: Nosignal;
